@@ -12,19 +12,22 @@ market-database/
 │   ├── 20250725102000-create-areas.sql
 │   ├── 20250725103000-create-estates.sql
 │   ├── 20250725104000-create-estate-units.sql
-│   └── 20250725105000-create-price-trends.sql
+│   ├── 20250725105000-create-price-trends.sql
+│   └── 20250725106000-create-aggregated-views.sql
 ├── seeders/                      # Database seeding modules
 │   ├── seed.js                   # Main seeder orchestrator
 │   ├── products-seed.js          # Products table seeder
 │   ├── areas-seed.js             # Areas table seeder
 │   ├── estates-seed.js           # Estates table seeder
 │   ├── estate-units-seed.js      # Estate units table seeder
-│   └── price-trends-seed.js      # Price trends table seeder
+│   ├── price-trends-seed.js      # Price trends table seeder
+│   └── aggregated-views-seed.js  # Aggregated views demonstration
 ├── utils/                        # Utility functions
 │   ├── pool.js                   # PostgreSQL connection pool
 │   └── index.js                  # Shared utility functions
 ├── docker-compose.yml            # Docker services configuration
 ├── Dockerfile                    # Node.js application container
+├── .dockerignore                 # Docker build exclusions
 ├── package.json                  # Project dependencies and scripts
 └── index.js                      # Application entry point
 ```
@@ -172,6 +175,16 @@ erDiagram
 | `estate_units` | Individual units within estates | 10 |
 | `price_trends` | Historical pricing data | 8 |
 
+### Aggregated Views
+
+| View | Description | Purpose |
+|------|-------------|---------|
+| `estate_summary_by_area` | Estate counts and statistics by area | Market analysis by location |
+| `price_trends_summary` | Price statistics by unit type and area | Price analysis and trends |
+| `market_performance_by_product` | Product performance metrics | Product analysis |
+| `monthly_price_trends` | Monthly price changes with percentages | Trend analysis |
+| `occupancy_analysis` | Occupancy rates by classification and type | Occupancy insights |
+
 ### Key Relationships
 - **estates** → `products` (product_id)
 - **estates** → `areas` (area_id)
@@ -224,6 +237,27 @@ JOIN estates e ON eu.estate_id = e.id
 WHERE eu.status = 'vacant' AND e.classification = 'luxury';
 ```
 
+### Get estate summary by area (using aggregated view):
+```sql
+SELECT * FROM estate_summary_by_area 
+ORDER BY total_estates DESC;
+```
+
+### Get monthly price trends with change percentages:
+```sql
+SELECT month, price_type, unit_type, area_name, avg_price, price_change_percent
+FROM monthly_price_trends 
+WHERE price_change_percent IS NOT NULL
+ORDER BY month DESC, price_change_percent DESC;
+```
+
+### Get occupancy analysis by classification:
+```sql
+SELECT classification, estate_type, area_name, occupancy_rate_percent
+FROM occupancy_analysis 
+ORDER BY occupancy_rate_percent DESC;
+```
+
 ## 🏗️ Architecture Features
 
 ### Modular Seeders
@@ -245,6 +279,13 @@ WHERE eu.status = 'vacant' AND e.classification = 'luxury';
 - **Timestamps** for audit trails
 - **Decimal precision** for currency values
 
+### Aggregated Views System
+- **Pre-built views** for common business intelligence queries
+- **Performance optimized** with strategic indexes
+- **Trend analysis** with time-based aggregations
+- **Market insights** with comparative analytics
+- **Real-time reporting** capabilities
+
 ## 🔍 Data Insights
 
 ### Sample Data Includes:
@@ -259,6 +300,13 @@ WHERE eu.status = 'vacant' AND e.classification = 'luxury';
 - **Sale**: ₦120M - ₦200M
 - **Unit Types**: 1-bedroom to 5-bedroom, studios, penthouses
 - **Classifications**: Luxury, middle-income, low-income
+
+### Aggregated Insights Available:
+- **Market Analysis**: Estate distribution and occupancy by area
+- **Price Trends**: Monthly price changes and market performance
+- **Product Performance**: Revenue and unit metrics by product
+- **Occupancy Rates**: Success metrics by property classification
+- **Comparative Analytics**: Rent vs sale performance across areas
 
 ## 🐳 Docker Configuration
 
@@ -298,3 +346,82 @@ WHERE eu.status = 'vacant' AND e.classification = 'luxury';
 3. Maintain foreign key relationships
 4. Add appropriate indexes for performance
 5. Include sample data in seeders
+
+## 🗑️ Database Management
+
+### Clearing Database Data
+
+There are several ways to clear your database data for a fresh start:
+
+#### Option 1: Remove Docker Volume (Recommended)
+```bash
+# Stop containers and remove volume (complete reset)
+docker-compose down -v
+
+# Start fresh with new volume
+docker-compose up --build
+```
+- ✅ **Completely fresh database**
+- ✅ **Removes all data permanently**
+- ✅ **Best for development/testing**
+
+#### Option 2: Reset Database Only
+```bash
+# Stop containers but keep volume
+docker-compose down
+
+# Remove just the database volume
+docker volume rm market-database_db_data
+
+# Start fresh
+docker-compose up --build
+```
+
+#### Option 3: Connect and Drop Database
+```bash
+# Connect to the running database
+docker-compose exec db psql -U postgres -d market_db
+
+# Inside psql, drop and recreate the database
+DROP DATABASE market_db;
+CREATE DATABASE market_db;
+\q
+
+# Then restart your app to run migrations
+docker-compose restart app
+```
+
+#### Option 4: Quick Reset (Keep containers running)
+```bash
+# Stop app, reset DB, restart app
+docker-compose stop app
+docker-compose exec db psql -U postgres -c "DROP DATABASE market_db; CREATE DATABASE market_db;"
+docker-compose start app
+```
+
+### Database Backup and Restore
+
+#### Create Backup
+```bash
+# Create a backup of your database
+docker-compose exec db pg_dump -U postgres market_db > backup_$(date +%Y%m%d_%H%M%S).sql
+```
+
+#### Restore from Backup
+```bash
+# Restore from a backup file
+docker-compose exec -T db psql -U postgres market_db < backup_20250725_143022.sql
+```
+
+### Database Health Check
+```bash
+# Check database connection
+docker-compose exec db psql -U postgres -d market_db -c "SELECT version();"
+
+# Check table counts
+docker-compose exec db psql -U postgres -d market_db -c "SELECT schemaname, tablename, n_tup_ins as inserts, n_tup_upd as updates, n_tup_del as deletes FROM pg_stat_user_tables;"
+```
+
+## 📞 Support
+
+For technical support or questions, please refer to the project documentation or contact the development team.

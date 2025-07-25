@@ -16,6 +16,7 @@ RUN pnpm install --frozen-lockfile --prod
 # Copy application code
 COPY migrations/ ./migrations/
 COPY seeders/ ./seeders/
+COPY queries/ ./queries/
 COPY utils/ ./utils/
 COPY index.js ./
 
