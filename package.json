@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Market Database Management System for segmentation, customer analysis, and product delivery",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "migrate": "node migrations/migrate.js",
     "seed": "node seeders/seed.js",

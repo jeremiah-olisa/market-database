@@ -32,8 +32,8 @@ services:
       DB_NAME: market_db
       DB_PORT: 5432
       NODE_ENV: production
-    restart: unless-stopped
-    command: sh -c "pnpm run migrate && pnpm run seed"
+    restart: "no"
+    command: sh -c "pnpm run migrate && pnpm run seed && pnpm start"
 
 volumes:
   db_data:

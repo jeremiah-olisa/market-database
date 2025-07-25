@@ -28,4 +28,4 @@ RUN chown -R nodejs:nodejs /usr/src/app
 USER nodejs
 
 # Command to run migrations and seeders
-CMD ["pnpm", "run", "migrate"]
+CMD ["sh", "-c", "pnpm run migrate && pnpm run seed && pnpm start"]
