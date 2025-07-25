@@ -298,7 +298,3 @@ WHERE eu.status = 'vacant' AND e.classification = 'luxury';
 3. Maintain foreign key relationships
 4. Add appropriate indexes for performance
 5. Include sample data in seeders
-
-## 📞 Support
-
-For technical support or questions, please refer to the project documentation or contact the development team.

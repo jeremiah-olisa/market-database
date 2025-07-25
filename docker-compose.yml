@@ -1,6 +1,6 @@
 services:
   db:
-    image: "postgres:latest"
+    image: "postgres:16-alpine"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -14,11 +14,14 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   app:
     build:
       context: .
       dockerfile: Dockerfile
+      cache_from:
+        - node:20-alpine
     depends_on:
       db:
         condition: service_healthy
@@ -28,9 +31,9 @@ services:
       DB_PASSWORD: postgres
       DB_NAME: market_db
       DB_PORT: 5432
-    volumes:
-      - .:/usr/src/app
-    command: npm run migrate && npm run seed
+      NODE_ENV: production
+    restart: unless-stopped
+    command: sh -c "pnpm run migrate && pnpm run seed"
 
 volumes:
   db_data:
