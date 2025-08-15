@@ -95,42 +95,48 @@ INSERT INTO demographics (estate_id, population, age_groups, income_levels, educ
 );
 
 -- Insert service providers data
-INSERT INTO service_providers (name, service_type, coverage_area, technology_stack, network_capacity, metadata) VALUES
-('TechConnect NG', 'internet', 'Victoria Island', 'Fiber Optic', '10 Gbps', 
-    jsonb_build_object('technology_stack', 'Fiber Optic', 'network_capacity', '10 Gbps', 'established_year', 2015)),
-('NetStream Plus', 'cable_tv', 'Lekki', 'Hybrid Fiber Coaxial', '5 Gbps',
-    jsonb_build_object('technology_stack', 'Hybrid Fiber Coaxial', 'network_capacity', '5 Gbps', 'established_year', 2018)),
-('Wireless Solutions', 'internet', 'Ikoyi', '5G Wireless', '2 Gbps',
-    jsonb_build_object('technology_stack', '5G Wireless', 'network_capacity', '2 Gbps', 'established_year', 2020));
+INSERT INTO service_providers (name, service_type, coverage_area, technology_stack, metadata) VALUES
+('TechConnect NG', 'internet', ST_GeomFromText('POLYGON((6.5244 3.3792, 6.5344 3.3792, 6.5344 3.3892, 6.5244 3.3892, 6.5244 3.3792))', 4326), 
+    jsonb_build_object('fiber', true, '5g', false, 'lte', true), 
+    jsonb_build_object('established_year', 2015, 'network_capacity', '10 Gbps')),
+('NetStream Plus', 'cable_tv', ST_GeomFromText('POLYGON((6.6018 3.3515, 6.6118 3.3515, 6.6118 3.3615, 6.6018 3.3615, 6.6018 3.3515))', 4326),
+    jsonb_build_object('fiber', false, '5g', false, 'lte', true),
+    jsonb_build_object('established_year', 2018, 'network_capacity', '5 Gbps')),
+('Wireless Solutions', 'internet', ST_GeomFromText('POLYGON((6.4531 3.3958, 6.4631 3.3958, 6.4631 3.4058, 6.4531 3.4058, 6.4531 3.3958))', 4326),
+    jsonb_build_object('fiber', false, '5g', true, 'lte', true),
+    jsonb_build_object('established_year', 2020, 'network_capacity', '2 Gbps'));
 
 -- Insert provider coverage data
-INSERT INTO provider_coverage (provider_id, estate_id, coverage_status, coverage_quality_score, installation_date, metadata) VALUES
-(1, 1, 'active', 95, '2023-01-15', jsonb_build_object('coverage_type', 'full', 'signal_strength', 'excellent')),
-(1, 2, 'active', 88, '2023-02-20', jsonb_build_object('coverage_type', 'full', 'signal_strength', 'good')),
-(2, 1, 'active', 92, '2023-01-10', jsonb_build_object('coverage_type', 'full', 'signal_strength', 'excellent')),
-(3, 3, 'active', 85, '2023-03-05', jsonb_build_object('coverage_type', 'partial', 'signal_strength', 'good'));
+INSERT INTO provider_coverage (provider_id, estate_id, coverage_status, quality_metrics, coverage_start_date, metadata) VALUES
+(1, 1, 'active', jsonb_build_object('reliability', 95, 'speed', '100mbps', 'uptime', 99.9), '2023-01-15', jsonb_build_object('coverage_type', 'full', 'signal_strength', 'excellent')),
+(1, 2, 'active', jsonb_build_object('reliability', 88, 'speed', '100mbps', 'uptime', 99.5), '2023-02-20', jsonb_build_object('coverage_type', 'full', 'signal_strength', 'good')),
+(2, 1, 'active', jsonb_build_object('reliability', 92, 'speed', '500mbps', 'uptime', 99.8), '2023-01-10', jsonb_build_object('coverage_type', 'full', 'signal_strength', 'excellent')),
+(3, 3, 'active', jsonb_build_object('reliability', 85, 'speed', '200mbps', 'uptime', 99.2), '2023-03-05', jsonb_build_object('coverage_type', 'partial', 'signal_strength', 'good'));
 
 -- Insert service offerings data
-INSERT INTO service_offerings (provider_id, service_name, service_description, pricing_tier_score, bandwidth_speed, pricing_structure, metadata) VALUES
-(1, 'FiberMax 1000', 'Ultra-fast fiber internet with 1000 Mbps speed', 95, 1000, 
-    jsonb_build_object('monthly_fee', 25000, 'setup_fee', 5000, 'contract_length', 12),
+INSERT INTO service_offerings (provider_id, plan_name, pricing, features, service_tier, metadata) VALUES
+(1, 'FiberMax 1000', 25000, 
+    jsonb_build_object('speed', '1000mbps', 'data_cap', 'unlimited', 'contract', '12_months'),
+    'premium',
     jsonb_build_object('features', jsonb_build_array('unlimited_data', '24_7_support', 'free_installation'))),
-(1, 'FiberMax 500', 'High-speed fiber internet with 500 Mbps speed', 85, 500,
-    jsonb_build_object('monthly_fee', 18000, 'setup_fee', 3000, 'contract_length', 12),
+(1, 'FiberMax 500', 18000,
+    jsonb_build_object('speed', '500mbps', 'data_cap', 'unlimited', 'contract', '12_months'),
+    'standard',
     jsonb_build_object('features', jsonb_build_array('unlimited_data', 'business_support', 'free_router'))),
-(2, 'CableTV Premium', 'Premium cable television with 200+ channels', 90, NULL,
-    jsonb_build_object('monthly_fee', 8000, 'setup_fee', 2000, 'contract_length', 6),
+(2, 'CableTV Premium', 8000,
+    jsonb_build_object('channels', '200+', 'quality', 'HD', 'contract', '6_months'),
+    'premium',
     jsonb_build_object('features', jsonb_build_array('hd_channels', 'dvr_service', 'on_demand')));
 
 -- Insert market share data
-INSERT INTO market_share_data (provider_id, estate_id, period_start, period_end, market_share_percentage, customer_count, revenue_amount, metadata) VALUES
-(1, 1, '2024-01-01', '2024-01-31', 65.5, 120, 3000000, jsonb_build_object('data_source', 'internal', 'verification_status', 'verified')),
-(1, 2, '2024-01-01', '2024-01-31', 58.2, 85, 1530000, jsonb_build_object('data_source', 'internal', 'verification_status', 'verified')),
-(2, 1, '2024-01-01', '2024-01-31', 34.5, 63, 504000, jsonb_build_object('data_source', 'internal', 'verification_status', 'verified')),
-(3, 3, '2024-01-01', '2024-01-31', 42.8, 45, 720000, jsonb_build_object('data_source', 'internal', 'verification_status', 'verified'));
+INSERT INTO market_share_data (provider_id, estate_id, period, market_share, customer_count, data_source, metadata) VALUES
+(1, 1, '2024-01-01', 65.5, 120, 'internal', jsonb_build_object('verification_status', 'verified')),
+(1, 2, '2024-01-01', 58.2, 85, 'internal', jsonb_build_object('verification_status', 'verified')),
+(2, 1, '2024-01-01', 34.5, 63, 'internal', jsonb_build_object('verification_status', 'verified')),
+(3, 3, '2024-01-01', 42.8, 45, 'internal', jsonb_build_object('verification_status', 'verified'));
 
 -- Insert business categories
-INSERT INTO business_categories (category_name, description, business_type, target_demographic, metadata) VALUES
+INSERT INTO business_categories (name, description, business_type, target_demographic, metadata) VALUES
 ('Retail & Shopping', 'Retail stores, supermarkets, and shopping centers', 'retail', 'general', 
     jsonb_build_object('subcategories', jsonb_build_array('supermarkets', 'clothing', 'electronics', 'pharmacies'))),
 ('Food & Dining', 'Restaurants, cafes, and food delivery services', 'food_service', 'general',
@@ -141,100 +147,123 @@ INSERT INTO business_categories (category_name, description, business_type, targ
     jsonb_build_object('subcategories', jsonb_build_array('primary_schools', 'secondary_schools', 'universities', 'training_centers')));
 
 -- Insert local businesses
-INSERT INTO local_businesses (estate_id, business_category, business_name, business_type, revenue_range, employee_count, geometry, metadata) VALUES
-(1, 1, 'Victoria Mall', 'retail', '10M-50M', 150, ST_GeomFromText('POINT(6.5245 3.3793)', 4326),
+INSERT INTO local_businesses (estate_id, category_id, name, business_type, price_range, rating, geometry, metadata) VALUES
+(1, 1, 'Victoria Mall', 'retail', 'expensive', 4.5, ST_GeomFromText('POINT(6.5245 3.3793)', 4326),
     jsonb_build_object('established_year', 2018, 'operating_hours', '8AM-10PM', 'parking_spaces', 200)),
-(1, 2, 'Lagos Bistro', 'food_service', '1M-10M', 25, ST_GeomFromText('POINT(6.5246 3.3791)', 4326),
+(1, 2, 'Lagos Bistro', 'food_service', 'moderate', 4.3, ST_GeomFromText('POINT(6.5246 3.3791)', 4326),
     jsonb_build_object('cuisine_type', 'international', 'seating_capacity', 80, 'delivery_available', true)),
-(2, 3, 'Lekki Medical Center', 'healthcare', '5M-25M', 45, ST_GeomFromText('POINT(6.6019 3.3516)', 4326),
+(2, 3, 'Lekki Medical Center', 'healthcare', 'expensive', 4.7, ST_GeomFromText('POINT(6.6019 3.3516)', 4326),
     jsonb_build_object('specialties', jsonb_build_array('general_practice', 'pediatrics', 'gynecology'), 'insurance_accepted', true)),
-(3, 4, 'Ikoyi International School', 'education', '25M-100M', 120, ST_GeomFromText('POINT(6.4532 3.3959)', 4326),
+(3, 4, 'Ikoyi International School', 'education', 'luxury', 4.6, ST_GeomFromText('POINT(6.4532 3.3959)', 4326),
     jsonb_build_object('curriculum', 'international', 'student_capacity', 800, 'boarding_available', false));
 
 -- Insert business metadata
-INSERT INTO business_metadata (estate_id, business_type, revenue_range, customer_count, market_position, competitive_advantages, metadata) VALUES
-(1, 'retail', '10M-50M', 5000, 'market_leader', 
-    jsonb_build_array('prime_location', 'diverse_offerings', 'quality_service'),
-    jsonb_build_object('market_share', 35.5, 'customer_satisfaction', 4.2, 'growth_rate', 12.5)),
-(2, 'food_service', '1M-10M', 1200, 'strong_contender',
-    jsonb_build_array('unique_cuisine', 'excellent_service', 'ambiance'),
-    jsonb_build_object('market_share', 18.2, 'customer_satisfaction', 4.5, 'growth_rate', 8.3)),
-(3, 'healthcare', '5M-25M', 2800, 'established_provider',
-    jsonb_build_array('qualified_staff', 'modern_equipment', 'comprehensive_care'),
-    jsonb_build_object('market_share', 22.8, 'customer_satisfaction', 4.3, 'growth_rate', 6.7));
+INSERT INTO business_metadata (business_id, metadata_type, metadata_key, metadata_value) VALUES
+(1, 'business_info', 'revenue_range', jsonb_build_object('range', '10M-50M', 'customer_count', 5000, 'market_position', 'market_leader')),
+(1, 'competitive_advantages', 'advantages', jsonb_build_array('prime_location', 'diverse_offerings', 'quality_service')),
+(1, 'performance_metrics', 'metrics', jsonb_build_object('market_share', 35.5, 'customer_satisfaction', 4.2, 'growth_rate', 12.5)),
+(2, 'business_info', 'revenue_range', jsonb_build_object('range', '1M-10M', 'customer_count', 1200, 'market_position', 'strong_contender')),
+(2, 'competitive_advantages', 'advantages', jsonb_build_array('unique_cuisine', 'excellent_service', 'ambiance')),
+(2, 'performance_metrics', 'metrics', jsonb_build_object('market_share', 18.2, 'customer_satisfaction', 4.5, 'growth_rate', 8.3)),
+(3, 'business_info', 'revenue_range', jsonb_build_object('range', '5M-25M', 'customer_count', 2800, 'market_position', 'established_provider')),
+(3, 'competitive_advantages', 'advantages', jsonb_build_array('qualified_staff', 'modern_equipment', 'comprehensive_care')),
+(3, 'performance_metrics', 'metrics', jsonb_build_object('market_share', 22.8, 'customer_satisfaction', 4.3, 'growth_rate', 6.7));
 
 -- Insert customer profiles
-INSERT INTO customer_profiles (estate_id, age_group, income_level, occupation, family_size, tenure_months, service_usage_pattern, satisfaction_score, metadata) VALUES
-(1, '26-35', 'middle', 'software_engineer', 3, 24, 'heavy', 4.5, 
+INSERT INTO customer_profiles (estate_id, customer_type, demographics, lifestyle_indicators, contact_preferences, service_preferences, metadata) VALUES
+(1, 'residential', 
+    jsonb_build_object('age_group', '26-35', 'income_level', 'middle', 'occupation', 'software_engineer'), 
+    jsonb_build_object('internet_usage', 'high', 'tech_savvy', true, 'entertainment', 'streaming'),
+    jsonb_build_object('email', true, 'sms', false, 'phone', true),
+    jsonb_build_object('internet_speed', '100mbps', 'data_usage', 'unlimited'),
     jsonb_build_object('preferred_contact', 'email', 'billing_preference', 'monthly', 'loyalty_program', true)),
-(1, '36-50', 'high', 'business_executive', 4, 36, 'moderate', 4.8,
+(1, 'residential', 
+    jsonb_build_object('age_group', '36-50', 'income_level', 'high', 'occupation', 'business_executive'), 
+    jsonb_build_object('internet_usage', 'moderate', 'tech_savvy', true, 'entertainment', 'news'),
+    jsonb_build_object('email', true, 'sms', true, 'phone', true),
+    jsonb_build_object('internet_speed', '500mbps', 'data_usage', 'unlimited'),
     jsonb_build_object('preferred_contact', 'phone', 'billing_preference', 'quarterly', 'loyalty_program', true)),
-(2, '18-25', 'middle', 'student', 2, 12, 'light', 4.2,
+(2, 'residential', 
+    jsonb_build_object('age_group', '18-25', 'income_level', 'middle', 'occupation', 'student'), 
+    jsonb_build_object('internet_usage', 'light', 'tech_savvy', true, 'entertainment', 'gaming'),
+    jsonb_build_object('email', false, 'sms', true, 'phone', false),
+    jsonb_build_object('internet_speed', '100mbps', 'data_usage', '50gb'),
     jsonb_build_object('preferred_contact', 'sms', 'billing_preference', 'monthly', 'loyalty_program', false)),
-(3, '50+', 'high', 'retired_professional', 2, 48, 'moderate', 4.6,
+(3, 'residential', 
+    jsonb_build_object('age_group', '50+', 'income_level', 'high', 'occupation', 'retired_professional'), 
+    jsonb_build_object('internet_usage', 'moderate', 'tech_savvy', false, 'entertainment', 'news'),
+    jsonb_build_object('email', true, 'sms', false, 'phone', true),
+    jsonb_build_object('internet_speed', '200mbps', 'data_usage', '100gb'),
     jsonb_build_object('preferred_contact', 'phone', 'billing_preference', 'monthly', 'loyalty_program', true));
 
 -- Insert usage patterns
-INSERT INTO usage_patterns (estate_id, service_type, usage_date, peak_usage_time, data_consumption_gb, service_quality_rating, metadata) VALUES
-(1, 'internet', '2024-01-15', 'evening', 45.5, 4.5, 
+INSERT INTO usage_patterns (customer_id, service_type, usage_metrics, period, billing_amount, metadata) VALUES
+(1, 'internet', 
+    jsonb_build_object('data_consumption', '45.5GB', 'peak_hours', '7-9PM', 'devices', 8, 'usage_type', 'streaming'), 
+    '2024-01-15', 25000,
     jsonb_build_object('device_count', 8, 'peak_hours', '7PM-11PM', 'usage_type', 'streaming')),
-(1, 'cable_tv', '2024-01-15', 'evening', NULL, 4.3,
+(1, 'cable_tv', 
+    jsonb_build_object('channels_watched', 15, 'peak_hours', '7-10PM', 'devices', 2, 'viewing_preferences', 'news_sports'), 
+    '2024-01-15', 8000,
     jsonb_build_object('channel_count', 15, 'peak_hours', '7PM-10PM', 'viewing_preferences', 'news_sports')),
-(2, 'internet', '2024-01-15', 'afternoon', 28.3, 4.7,
+(2, 'internet', 
+    jsonb_build_object('data_consumption', '28.3GB', 'peak_hours', '2-6PM', 'devices', 4, 'usage_type', 'gaming'), 
+    '2024-01-15', 18000,
     jsonb_build_object('device_count', 4, 'peak_hours', '2PM-6PM', 'usage_type', 'gaming')),
-(3, 'internet', '2024-01-15', 'morning', 32.1, 4.4,
+(3, 'internet', 
+    jsonb_build_object('data_consumption', '32.1GB', 'peak_hours', '9-12PM', 'devices', 6, 'usage_type', 'work_communication'), 
+    '2024-01-15', 16000,
     jsonb_build_object('device_count', 6, 'peak_hours', '9AM-12PM', 'usage_type', 'work_communication'));
 
 -- Insert customer feedback
-INSERT INTO customer_feedback (estate_id, service_type, rating, feedback_text, feedback_category, response_status, metadata) VALUES
-(1, 'internet', 5, 'Excellent service, very fast and reliable', 'positive', 'resolved',
+INSERT INTO customer_feedback (customer_id, service_type, rating, feedback_text, feedback_category, sentiment_score, metadata) VALUES
+(1, 'internet', 5, 'Excellent service, very fast and reliable', 'service_quality', 0.9,
     jsonb_build_object('feedback_source', 'customer_survey', 'priority_level', 'low', 'escalation_required', false)),
-(1, 'cable_tv', 4, 'Good picture quality, but could use more channels', 'suggestion', 'pending',
+(1, 'cable_tv', 4, 'Good picture quality, but could use more channels', 'service_quality', 0.6,
     jsonb_build_object('feedback_source', 'customer_survey', 'priority_level', 'medium', 'escalation_required', false)),
-(2, 'internet', 5, 'Amazing speed, perfect for gaming', 'positive', 'resolved',
+(2, 'internet', 5, 'Amazing speed, perfect for gaming', 'service_quality', 0.9,
     jsonb_build_object('feedback_source', 'online_review', 'priority_level', 'low', 'escalation_required', false)),
-(3, 'internet', 4, 'Reliable service, good customer support', 'positive', 'resolved',
+(3, 'internet', 4, 'Reliable service, good customer support', 'service_quality', 0.7,
     jsonb_build_object('feedback_source', 'customer_survey', 'priority_level', 'low', 'escalation_required', false));
 
 -- Insert cross-service adoption data
-INSERT INTO cross_service_adoption (estate_id, primary_service, secondary_service, adoption_rate, customer_satisfaction, metadata) VALUES
-(1, 'internet', 'cable_tv', 78.5, 4.6, 
+INSERT INTO cross_service_adoption (customer_id, service_type, adoption_status, adoption_date, usage_frequency, metadata) VALUES
+(1, 'cable_tv', 'adopted', '2024-01-01', 'daily',
     jsonb_build_object('bundle_discount', 15.0, 'promotional_period', '6_months', 'retention_rate', 85.2)),
-(2, 'internet', 'telephony', 45.2, 4.3,
+(2, 'telephony', 'adopted', '2024-01-01', 'weekly',
     jsonb_build_object('bundle_discount', 10.0, 'promotional_period', '3_months', 'retention_rate', 72.8)),
-(3, 'internet', 'cable_tv', 62.8, 4.5,
+(3, 'cable_tv', 'adopted', '2024-01-01', 'daily',
     jsonb_build_object('bundle_discount', 12.5, 'promotional_period', '6_months', 'retention_rate', 78.9));
 
 -- Insert network infrastructure data
-INSERT INTO network_infrastructure (estate_id, infrastructure_type, capacity_mbps, current_utilization_percentage, reliability_score, last_maintenance_date, metadata) VALUES
-(1, 'fiber_optic', 1000, 65.5, 98.5, '2023-12-15', 
-    jsonb_build_object('technology', 'GPON', 'fiber_length_km', 2.5, 'nodes_count', 8)),
-(1, 'coaxial_cable', 500, 45.2, 95.8, '2023-11-20',
-    jsonb_build_object('technology', 'DOCSIS 3.1', 'cable_length_km', 1.8, 'amplifiers_count', 3)),
-(2, 'fiber_optic', 500, 72.3, 97.2, '2023-12-10',
-    jsonb_build_object('technology', 'GPON', 'fiber_length_km', 1.8, 'nodes_count', 5)),
-(3, 'wireless', 200, 58.7, 93.5, '2023-10-25',
-    jsonb_build_object('technology', '5G', 'tower_height_m', 25, 'coverage_radius_km', 0.8));
+INSERT INTO network_infrastructure (estate_id, infrastructure_type, capacity, coverage_quality, technology, last_maintenance_date) VALUES
+(1, 'fiber', 1000, 4.9, 'GPON', '2023-12-15'),
+(1, 'hybrid', 500, 4.8, 'DOCSIS 3.1', '2023-11-20'),
+(2, 'fiber', 500, 4.9, 'GPON', '2023-12-10'),
+(3, 'wireless', 200, 4.7, '5G', '2023-10-25');
 
 -- Insert capacity metrics
-INSERT INTO capacity_metrics (estate_id, metric_type, period_start, period_end, current_utilization, peak_utilization, availability_percentage, metadata) VALUES
-(1, 'bandwidth', '2024-01-01', '2024-01-31', 65.5, 89.2, 99.8,
-    jsonb_build_object('measurement_interval', 'hourly', 'data_source', 'network_monitoring', 'alert_threshold', 80.0)),
-(1, 'storage', '2024-01-01', '2024-01-31', 45.8, 67.3, 99.9,
-    jsonb_build_object('measurement_interval', 'daily', 'data_source', 'storage_monitoring', 'alert_threshold', 85.0)),
-(2, 'bandwidth', '2024-01-01', '2024-01-31', 72.3, 91.5, 99.7,
-    jsonb_build_object('measurement_interval', 'hourly', 'data_source', 'network_monitoring', 'alert_threshold', 80.0)),
-(3, 'bandwidth', '2024-01-01', '2024-01-31', 58.7, 78.9, 99.5,
-    jsonb_build_object('measurement_interval', 'hourly', 'data_source', 'network_monitoring', 'alert_threshold', 80.0));
+INSERT INTO capacity_metrics (infrastructure_id, utilization_rate, performance_metrics, peak_hours, measurement_period) VALUES
+(1, 65.5, jsonb_build_object('latency', 15, 'packet_loss', 0.1, 'jitter', 5), 
+    jsonb_build_object('morning', '7-9AM', 'evening', '6-9PM'), '2024-01-15 12:00:00'),
+(2, 45.8, jsonb_build_object('latency', 20, 'packet_loss', 0.2, 'jitter', 8), 
+    jsonb_build_object('morning', '8-10AM', 'evening', '7-10PM'), '2024-01-15 12:00:00'),
+(3, 72.3, jsonb_build_object('latency', 12, 'packet_loss', 0.05, 'jitter', 3), 
+    jsonb_build_object('morning', '7-9AM', 'evening', '6-9PM'), '2024-01-15 12:00:00'),
+(4, 58.7, jsonb_build_object('latency', 25, 'packet_loss', 0.3, 'jitter', 10), 
+    jsonb_build_object('morning', '9-11AM', 'evening', '5-8PM'), '2024-01-15 12:00:00');
 
 -- Insert infrastructure investments
-INSERT INTO infrastructure_investments (estate_id, investment_type, investment_amount, investment_date, expected_completion, roi_percentage, metadata) VALUES
-(1, 'fiber_upgrade', 25000000, '2024-01-15', '2024-06-30', 18.5,
-    jsonb_build_object('contractor', 'TechBuild NG', 'scope', 'fiber_network_expansion', 'funding_source', 'internal')),
-(2, 'equipment_replacement', 15000000, '2024-02-01', '2024-04-30', 22.3,
-    jsonb_build_object('contractor', 'NetEquip Solutions', 'scope', 'router_switch_upgrade', 'funding_source', 'loan')),
-(3, 'wireless_expansion', 8000000, '2024-01-20', '2024-03-31', 15.8,
-    jsonb_build_object('contractor', 'Wireless Tech NG', 'scope', '5G_tower_installation', 'funding_source', 'internal'));
+INSERT INTO infrastructure_investments (estate_id, investment_type, amount, investment_date, expected_completion_date, roi_metrics, description) VALUES
+(1, 'fiber_upgrade', 25000000, '2024-01-15', '2024-06-30', 
+    jsonb_build_object('expected_roi', 18.5, 'payback_period', '18_months', 'irr', 15.2),
+    'Fiber network expansion project by TechBuild NG'),
+(2, 'equipment_replacement', 15000000, '2024-02-01', '2024-04-30', 
+    jsonb_build_object('expected_roi', 22.3, 'payback_period', '12_months', 'irr', 18.5),
+    'Router and switch upgrade by NetEquip Solutions'),
+(3, 'wireless_expansion', 8000000, '2024-01-20', '2024-03-31', 
+    jsonb_build_object('expected_roi', 15.8, 'payback_period', '24_months', 'irr', 12.8),
+    '5G tower installation by Wireless Tech NG');
 
 -- Insert revenue metrics
 INSERT INTO revenue_metrics (estate_id, product_id, period_start, period_end, revenue_amount, revenue_type, customer_count, average_revenue_per_customer, metadata) VALUES

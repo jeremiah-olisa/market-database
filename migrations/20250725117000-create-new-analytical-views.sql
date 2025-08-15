@@ -39,13 +39,13 @@ SELECT
     d.income_levels->>'high' as income_high,
     d.education_levels->>'tertiary' as education_tertiary,
     COUNT(DISTINCT cp.id) as total_customers,
-    AVG(cp.tenure_months) as avg_tenure,
-    AVG(cp.satisfaction_score) as avg_satisfaction
+    cp.demographics->>'age_group' as customer_age_group,
+    cp.demographics->>'income_level' as customer_income_level
 FROM estates e
 LEFT JOIN demographics d ON e.id = d.estate_id
 LEFT JOIN customer_profiles cp ON e.id = cp.estate_id
 GROUP BY e.id, e.name, e.tier_classification, d.population, d.household_size, d.employment_rate,
-         d.age_groups, d.income_levels, d.education_levels;
+         d.age_groups, d.income_levels, d.education_levels, cp.demographics;
 
 -- Competitive Intelligence View
 CREATE OR REPLACE VIEW competitive_intelligence_summary AS
@@ -55,17 +55,17 @@ SELECT
     sp.service_type,
     sp.coverage_area,
     COUNT(DISTINCT pc.estate_id) as estates_covered,
-    AVG(pc.coverage_quality_score) as avg_coverage_quality,
-    AVG(msd.market_share_percentage) as avg_market_share,
+    AVG((pc.quality_metrics->>'reliability')::DECIMAL) as avg_coverage_quality,
+    AVG(msd.market_share) as avg_market_share,
     COUNT(DISTINCT so.id) as service_offerings_count,
-    AVG(so.pricing_tier_score) as avg_pricing_tier,
-    sp.metadata->>'technology_stack' as technology_stack,
-    sp.metadata->>'network_capacity' as network_capacity
+    AVG(CASE WHEN so.service_tier = 'premium' THEN 3 WHEN so.service_tier = 'standard' THEN 2 ELSE 1 END) as avg_pricing_tier,
+    sp.technology_stack->>'fiber' as has_fiber,
+    sp.technology_stack->>'5g' as has_5g
 FROM service_providers sp
 LEFT JOIN provider_coverage pc ON sp.id = pc.provider_id
 LEFT JOIN market_share_data msd ON sp.id = msd.provider_id
 LEFT JOIN service_offerings so ON sp.id = so.provider_id
-GROUP BY sp.id, sp.name, sp.service_type, sp.coverage_area, sp.metadata;
+GROUP BY sp.id, sp.name, sp.service_type, sp.coverage_area, sp.technology_stack;
 
 -- Infrastructure Capacity Analysis View
 CREATE OR REPLACE VIEW infrastructure_capacity_analysis AS
@@ -74,23 +74,23 @@ SELECT
     e.name as estate_name,
     e.tier_classification,
     ni.infrastructure_type,
-    ni.capacity_mbps,
-    ni.current_utilization_percentage,
-    ni.reliability_score,
-    cm.metric_type,
-    cm.current_utilization,
-    cm.peak_utilization,
-    cm.availability_percentage,
+    ni.capacity as capacity_mbps,
+    cm.utilization_rate as current_utilization_percentage,
+    ni.coverage_quality as reliability_score,
+    'utilization' as metric_type,
+    cm.utilization_rate as current_utilization,
+    cm.utilization_rate as peak_utilization,
+    100 - cm.utilization_rate as availability_percentage,
     CASE 
-        WHEN cm.current_utilization > 80 THEN 'High'
-        WHEN cm.current_utilization > 60 THEN 'Medium'
+        WHEN cm.utilization_rate > 80 THEN 'High'
+        WHEN cm.utilization_rate > 60 THEN 'Medium'
         ELSE 'Low'
     END as utilization_level,
-    ni.metadata->>'last_maintenance' as last_maintenance,
-    ni.metadata->>'upgrade_planned' as upgrade_planned
+    ni.last_maintenance_date as last_maintenance,
+    CASE WHEN ni.status = 'upgrade' THEN 'Yes' ELSE 'No' END as upgrade_planned
 FROM estates e
 LEFT JOIN network_infrastructure ni ON e.id = ni.estate_id
-LEFT JOIN capacity_metrics cm ON e.id = cm.estate_id
+LEFT JOIN capacity_metrics cm ON ni.id = cm.infrastructure_id
 WHERE ni.infrastructure_type IS NOT NULL;
 
 -- Financial Performance Analysis View
@@ -147,8 +147,8 @@ SELECT
 FROM areas a
 LEFT JOIN estates e ON a.id = e.area_id
 LEFT JOIN demographics d ON e.id = d.estate_id
-LEFT JOIN service_providers sp ON sp.coverage_area = a.name
-LEFT JOIN local_businesses lb ON ST_Within(lb.geometry, a.geometry)
+LEFT JOIN service_providers sp ON ST_Within(a.geometry, sp.coverage_area)
+LEFT JOIN local_businesses lb ON lb.estate_id IN (SELECT id FROM estates WHERE area_id = a.id)
 GROUP BY a.id, a.name, a.state, a.population_density, a.economic_activity_score
 WITH DATA;
 
@@ -163,8 +163,6 @@ SELECT
     d.household_size,
     d.employment_rate,
     COUNT(DISTINCT cp.id) as total_customers,
-    AVG(cp.tenure_months) as avg_tenure,
-    AVG(cp.satisfaction_score) as avg_satisfaction,
     COUNT(DISTINCT up.id) as usage_patterns_count,
     COUNT(DISTINCT cf.id) as feedback_count,
     AVG(cf.rating) as avg_rating,
@@ -172,9 +170,9 @@ SELECT
 FROM estates e
 LEFT JOIN demographics d ON e.id = d.estate_id
 LEFT JOIN customer_profiles cp ON e.id = cp.estate_id
-LEFT JOIN usage_patterns up ON e.id = up.estate_id
-LEFT JOIN customer_feedback cf ON e.id = cf.estate_id
-LEFT JOIN cross_service_adoption csa ON e.id = csa.estate_id
+LEFT JOIN usage_patterns up ON cp.id = up.customer_id
+LEFT JOIN customer_feedback cf ON cp.id = cf.customer_id
+LEFT JOIN cross_service_adoption csa ON cp.id = csa.customer_id
 GROUP BY e.id, e.name, e.tier_classification, e.area_id, d.population, d.household_size, d.employment_rate
 WITH DATA;
 
@@ -185,22 +183,22 @@ SELECT
     e.name as estate_name,
     e.tier_classification,
     ni.infrastructure_type,
-    ni.capacity_mbps,
-    ni.current_utilization_percentage,
-    ni.reliability_score,
-    AVG(cm.current_utilization) as avg_current_utilization,
-    MAX(cm.peak_utilization) as max_peak_utilization,
-    AVG(cm.availability_percentage) as avg_availability,
+    ni.capacity as capacity_mbps,
+    cm.utilization_rate as current_utilization_percentage,
+    ni.coverage_quality as reliability_score,
+    AVG(cm.utilization_rate) as avg_current_utilization,
+    MAX(cm.utilization_rate) as max_peak_utilization,
+    AVG(100 - cm.utilization_rate) as avg_availability,
     COUNT(DISTINCT ii.id) as infrastructure_investments_count,
-    SUM(ii.investment_amount) as total_investment_amount,
-    ni.metadata->>'last_maintenance' as last_maintenance,
-    ni.metadata->>'upgrade_planned' as upgrade_planned
+    SUM(ii.amount) as total_investment_amount,
+    ni.last_maintenance_date as last_maintenance,
+    CASE WHEN ni.status = 'upgrade' THEN 'Yes' ELSE 'No' END as upgrade_planned
 FROM estates e
 LEFT JOIN network_infrastructure ni ON e.id = ni.estate_id
-LEFT JOIN capacity_metrics cm ON e.id = cm.estate_id
+LEFT JOIN capacity_metrics cm ON ni.id = cm.infrastructure_id
 LEFT JOIN infrastructure_investments ii ON e.id = ii.estate_id
-GROUP BY e.id, e.name, e.tier_classification, ni.infrastructure_type, ni.capacity_mbps,
-         ni.current_utilization_percentage, ni.reliability_score, ni.metadata
+GROUP BY e.id, e.name, e.tier_classification, ni.infrastructure_type, ni.capacity,
+         cm.utilization_rate, ni.coverage_quality, ni.last_maintenance_date, ni.status
 WITH DATA;
 
 -- Create indexes on materialized views for better performance

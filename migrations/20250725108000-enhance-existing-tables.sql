@@ -6,7 +6,7 @@ ALTER TABLE estates ADD COLUMN IF NOT EXISTS tier_classification VARCHAR(20) CHE
 
 -- You can do it like this 
 ALTER TABLE estates ADD COLUMN IF NOT EXISTS metadata JSONB;
--- or
+-- or the reviewer would decide to use any approach
 -- CREATE TABLE estate_metadata (
 --     id SERIAL PRIMARY KEY,
 --     estate_id INTEGER REFERENCES estates(id),
