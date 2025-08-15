@@ -105,3 +105,8 @@ public/
 Thumbs.db
 
 requirements.md
+MIGRATION-PLAN.md
+requirements-v2.md
+deployment/
+docs/api/
+docs/deployment/

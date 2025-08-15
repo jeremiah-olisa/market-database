@@ -10,7 +10,7 @@ WORKDIR /usr/src/app
 # Copy package files first for better caching
 COPY package.json pnpm-lock.yaml ./
 
-# Install dependencies
+# Install dependencies (production only)
 RUN pnpm install --frozen-lockfile --prod
 
 # Copy application code

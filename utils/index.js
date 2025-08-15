@@ -1,3 +1,7 @@
+// Import and re-export pool for convenience
+import pool from './pool.js';
+export { pool };
+
 /**
  * Generates SQL placeholders for bulk insert operations
  * @param {Array} dataArray - Array of data objects

@@ -7,14 +7,40 @@
   "scripts": {
     "migrate": "node migrations/migrate.js",
     "seed": "node seeders/seed.js",
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:integration": "jest --testPathPattern=integration",
+    "test:unit": "jest --testPathPattern=unit",
+    "test:performance": "node tests/performance/performance-tests.js",
+    "test:constraints": "node tests/integrity/constraint-tests.js",
+    "test:indexes": "node tests/performance/index-performance-tests.js",
+    "test:views": "node tests/performance/view-performance-tests.js"
   },
   "dependencies": {
     "pg": "^8.11.3",
     "pg-hstore": "^2.3.4"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3",
+    "nodemon": "^3.0.2"
+  },
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.11.1"
+  "packageManager": "pnpm@10.11.1",
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverageFrom": [
+      "queries/**/*.js",
+      "utils/**/*.js",
+      "migrations/**/*.js"
+    ],
+    "coverageDirectory": "coverage",
+    "testMatch": [
+      "**/tests/**/*.test.js",
+      "**/tests/**/*.spec.js"
+    ]
+  }
 }

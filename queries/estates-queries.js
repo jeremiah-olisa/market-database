@@ -1,111 +1,262 @@
-import pool from "../utils/pool.js";
+import { pool } from '../utils/index.js';
 
-export async function runEstateQueries() {
-  console.log("\n🏘️ ESTATE QUERIES");
-  console.log("=".repeat(50));
+/**
+ * Enhanced Estate Queries with Tier Classification Support
+ * Provides comprehensive estate analysis including tier classification, market potential, and competitive intelligence
+ */
 
-  try {
-    // Query 1: All estates
-    console.log("\n1️⃣ All Estates:");
-    const allEstates = await pool.query(`
-      SELECT 
-        e.id, e.name, e.estate_type, e.unit_count, e.occupancy_status, 
-        e.classification, e.gated, e.has_security,
-        p.name as product_name,
-        a.name as area_name
-      FROM estates e
-      JOIN products p ON e.product_id = p.id
-      JOIN areas a ON e.area_id = a.id
-      ORDER BY e.name
-    `);
-    console.table(allEstates.rows);
+class EstateQueries {
+    /**
+     * Get all estates with enhanced information including tier classification
+     */
+    async getAllEstates() {
+        const query = `
+            SELECT 
+                e.id, e.name, e.estate_type, e.unit_count, e.occupancy_status, 
+                e.classification, e.gated, e.has_security, e.tier_classification,
+                e.market_potential_score, e.competitive_intensity,
+                p.name as product_name, p.service_category, p.pricing_tier,
+                a.name as area_name, a.state, a.population_density,
+                COUNT(eu.id) as total_units,
+                COUNT(CASE WHEN eu.status = 'occupied' THEN 1 END) as occupied_units,
+                COUNT(CASE WHEN eu.status = 'vacant' THEN 1 END) as vacant_units
+            FROM estates e
+            JOIN products p ON e.product_id = p.id
+            JOIN areas a ON e.area_id = a.id
+            LEFT JOIN estate_units eu ON e.id = eu.estate_id
+            GROUP BY e.id, e.name, e.estate_type, e.unit_count, e.occupancy_status, 
+                     e.classification, e.gated, e.has_security, e.tier_classification,
+                     e.market_potential_score, e.competitive_intensity,
+                     p.name, p.service_category, p.pricing_tier,
+                     a.name, a.state, a.population_density
+            ORDER BY e.tier_classification DESC, e.market_potential_score DESC
+        `;
+        
+        try {
+            const result = await pool.query(query);
+            return result.rows;
+        } catch (error) {
+            throw new Error(`Error fetching all estates: ${error.message}`);
+        }
+    }
 
-    // Query 2: Estates by type
-    console.log("\n2️⃣ Estates by Type:");
-    const estatesByType = await pool.query(`
-      SELECT 
-        estate_type, 
-        COUNT(*) as count,
-        AVG(unit_count) as avg_units,
-        SUM(unit_count) as total_units
-      FROM estates 
-      GROUP BY estate_type 
-      ORDER BY count DESC
-    `);
-    console.table(estatesByType.rows);
+    /**
+     * Get estates analysis by type with tier classification
+     */
+    async getEstatesByType() {
+        const query = `
+            SELECT 
+                e.estate_type,
+                e.tier_classification,
+                COUNT(*) as count,
+                AVG(e.unit_count) as avg_units,
+                SUM(e.unit_count) as total_units,
+                AVG(e.market_potential_score) as avg_market_potential,
+                AVG(e.competitive_intensity) as avg_competitive_intensity
+            FROM estates e
+            GROUP BY e.estate_type, e.tier_classification
+            ORDER BY e.estate_type, e.tier_classification DESC
+        `;
+        
+        try {
+            const result = await pool.query(query);
+            return result.rows;
+        } catch (error) {
+            throw new Error(`Error fetching estates by type: ${error.message}`);
+        }
+    }
 
-    // Query 3: Estates by classification
-    console.log("\n3️⃣ Estates by Classification:");
-    const estatesByClassification = await pool.query(`
-      SELECT 
-        classification, 
-        COUNT(*) as count,
-        AVG(unit_count) as avg_units,
-        COUNT(CASE WHEN gated = true THEN 1 END) as gated_count,
-        COUNT(CASE WHEN has_security = true THEN 1 END) as security_count
-      FROM estates 
-      GROUP BY classification 
-      ORDER BY count DESC
-    `);
-    console.table(estatesByClassification.rows);
+    /**
+     * Get estates analysis by tier classification
+     */
+    async getEstatesByTierClassification() {
+        const query = `
+            SELECT 
+                e.tier_classification,
+                COUNT(*) as count,
+                AVG(e.unit_count) as avg_units,
+                SUM(e.unit_count) as total_units,
+                AVG(e.market_potential_score) as avg_market_potential,
+                AVG(e.competitive_intensity) as avg_competitive_intensity,
+                COUNT(CASE WHEN e.gated = true THEN 1 END) as gated_count,
+                COUNT(CASE WHEN e.has_security = true THEN 1 END) as security_count,
+                COUNT(CASE WHEN e.occupancy_status = 'fully_occupied' THEN 1 END) as fully_occupied_count
+            FROM estates e
+            GROUP BY e.tier_classification
+            ORDER BY 
+                CASE e.tier_classification 
+                    WHEN 'platinum' THEN 1 
+                    WHEN 'gold' THEN 2 
+                    WHEN 'silver' THEN 3 
+                    WHEN 'bronze' THEN 4 
+                END
+        `;
+        
+        try {
+            const result = await pool.query(query);
+            return result.rows;
+        } catch (error) {
+            throw new Error(`Error fetching estates by tier classification: ${error.message}`);
+        }
+    }
 
-    // Query 4: Estates by occupancy status
-    console.log("\n4️⃣ Estates by Occupancy Status:");
-    const estatesByOccupancy = await pool.query(`
-      SELECT 
-        occupancy_status, 
-        COUNT(*) as count,
-        AVG(unit_count) as avg_units,
-        SUM(unit_count) as total_units
-      FROM estates 
-      GROUP BY occupancy_status 
-      ORDER BY count DESC
-    `);
-    console.table(estatesByOccupancy.rows);
+    /**
+     * Get estates analysis by occupancy status with tier classification
+     */
+    async getEstatesByOccupancyStatus() {
+        const query = `
+            SELECT 
+                e.occupancy_status,
+                e.tier_classification,
+                COUNT(*) as count,
+                AVG(e.unit_count) as avg_units,
+                SUM(e.unit_count) as total_units,
+                AVG(e.market_potential_score) as avg_market_potential
+            FROM estates e
+            GROUP BY e.occupancy_status, e.tier_classification
+            ORDER BY e.occupancy_status, e.tier_classification DESC
+        `;
+        
+        try {
+            const result = await pool.query(query);
+            return result.rows;
+        } catch (error) {
+            throw new Error(`Error fetching estates by occupancy status: ${error.message}`);
+        }
+    }
 
-    // Query 5: Estates with security features
-    console.log("\n5️⃣ Estates with Security Features:");
-    const estatesWithSecurity = await pool.query(`
-      SELECT 
-        e.name as estate_name,
-        e.classification,
-        e.estate_type,
-        e.unit_count,
-        e.gated,
-        e.has_security,
-        a.name as area_name,
-        p.name as product_name
-      FROM estates e
-      JOIN areas a ON e.area_id = a.id
-      JOIN products p ON e.product_id = p.id
-      WHERE e.gated = true OR e.has_security = true
-      ORDER BY e.gated DESC, e.has_security DESC
-    `);
-    console.table(estatesWithSecurity.rows);
+    /**
+     * Get estates with security features and tier classification
+     */
+    async getEstatesWithSecurityFeatures() {
+        const query = `
+            SELECT 
+                e.name as estate_name,
+                e.tier_classification,
+                e.classification,
+                e.estate_type,
+                e.unit_count,
+                e.gated,
+                e.has_security,
+                e.market_potential_score,
+                a.name as area_name,
+                p.name as product_name
+            FROM estates e
+            JOIN areas a ON e.area_id = a.id
+            JOIN products p ON e.product_id = p.id
+            WHERE e.gated = true OR e.has_security = true
+            ORDER BY e.tier_classification DESC, e.gated DESC, e.has_security DESC
+        `;
+        
+        try {
+            const result = await pool.query(query);
+            return result.rows;
+        } catch (error) {
+            throw new Error(`Error fetching estates with security features: ${error.message}`);
+        }
+    }
 
-    // Query 6: Luxury estates analysis
-    console.log("\n6️⃣ Luxury Estates Analysis:");
-    const luxuryEstates = await pool.query(`
-      SELECT 
-        e.name as estate_name,
-        e.estate_type,
-        e.unit_count,
-        e.occupancy_status,
-        e.gated,
-        e.has_security,
-        a.name as area_name,
-        p.name as product_name
-      FROM estates e
-      JOIN areas a ON e.area_id = a.id
-      JOIN products p ON e.product_id = p.id
-      WHERE e.classification = 'luxury'
-      ORDER BY e.unit_count DESC
-    `);
-    console.table(luxuryEstates.rows);
+    /**
+     * Get high-potential estates analysis by tier
+     */
+    async getHighPotentialEstates() {
+        const query = `
+            SELECT 
+                e.name as estate_name,
+                e.tier_classification,
+                e.estate_type,
+                e.unit_count,
+                e.occupancy_status,
+                e.market_potential_score,
+                e.competitive_intensity,
+                e.gated,
+                e.has_security,
+                a.name as area_name,
+                a.population_density,
+                p.name as product_name,
+                p.service_category
+            FROM estates e
+            JOIN areas a ON e.area_id = a.id
+            JOIN products p ON e.product_id = p.id
+            WHERE e.market_potential_score >= 7.0
+            ORDER BY e.market_potential_score DESC, e.tier_classification DESC
+        `;
+        
+        try {
+            const result = await pool.query(query);
+            return result.rows;
+        } catch (error) {
+            throw new Error(`Error fetching high-potential estates: ${error.message}`);
+        }
+    }
 
-    console.log("✅ Estate queries completed successfully!");
-  } catch (error) {
-    console.error("❌ Error running estate queries:", error);
-    throw error;
-  }
-} 
+    /**
+     * Get estates by market potential score range
+     */
+    async getEstatesByMarketPotential() {
+        const query = `
+            SELECT 
+                CASE 
+                    WHEN e.market_potential_score >= 8.0 THEN 'Very High (8.0-10.0)'
+                    WHEN e.market_potential_score >= 6.0 THEN 'High (6.0-7.9)'
+                    WHEN e.market_potential_score >= 4.0 THEN 'Medium (4.0-5.9)'
+                    ELSE 'Low (0.0-3.9)'
+                END as potential_category,
+                COUNT(*) as estate_count,
+                AVG(e.market_potential_score) as avg_score,
+                AVG(e.competitive_intensity) as avg_competitive_intensity,
+                COUNT(CASE WHEN e.tier_classification IN ('platinum', 'gold') THEN 1 END) as premium_estates
+            FROM estates e
+            GROUP BY 
+                CASE 
+                    WHEN e.market_potential_score >= 8.0 THEN 'Very High (8.0-10.0)'
+                    WHEN e.market_potential_score >= 6.0 THEN 'High (6.0-7.9)'
+                    WHEN e.market_potential_score >= 4.0 THEN 'Medium (4.0-5.9)'
+                    ELSE 'Low (0.0-3.9)'
+                END
+            ORDER BY avg_score DESC
+        `;
+        
+        try {
+            const result = await pool.query(query);
+            return result.rows;
+        } catch (error) {
+            throw new Error(`Error fetching estates by market potential: ${error.message}`);
+        }
+    }
+
+    /**
+     * Get competitive analysis by estate tier
+     */
+    async getCompetitiveAnalysisByTier() {
+        const query = `
+            SELECT 
+                e.tier_classification,
+                COUNT(*) as estate_count,
+                AVG(e.competitive_intensity) as avg_competitive_intensity,
+                COUNT(CASE WHEN e.competitive_intensity >= 7 THEN 1 END) as high_competition_count,
+                COUNT(CASE WHEN e.competitive_intensity <= 3 THEN 1 END) as low_competition_count,
+                AVG(e.market_potential_score) as avg_market_potential,
+                COUNT(DISTINCT a.id) as area_count
+            FROM estates e
+            JOIN areas a ON e.area_id = a.id
+            GROUP BY e.tier_classification
+            ORDER BY 
+                CASE e.tier_classification 
+                    WHEN 'platinum' THEN 1 
+                    WHEN 'gold' THEN 2 
+                    WHEN 'silver' THEN 3 
+                    WHEN 'bronze' THEN 4 
+                END
+        `;
+        
+        try {
+            const result = await pool.query(query);
+            return result.rows;
+        } catch (error) {
+            throw new Error(`Error fetching competitive analysis by tier: ${error.message}`);
+        }
+    }
+}
+
+export default new EstateQueries(); 
