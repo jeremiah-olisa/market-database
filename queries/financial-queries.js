@@ -1,4 +1,4 @@
-const { pool } = require('../utils');
+import { pool } from '../utils/index.js';
 
 /**
  * Financial Intelligence Queries
@@ -304,4 +304,4 @@ class FinancialQueries {
     }
 }
 
-module.exports = new FinancialQueries();
+export default new FinancialQueries();

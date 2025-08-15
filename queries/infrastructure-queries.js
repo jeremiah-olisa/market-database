@@ -1,4 +1,4 @@
-const { pool } = require('../utils');
+import { pool } from '../utils/index.js';
 
 /**
  * Infrastructure Intelligence Queries
@@ -247,4 +247,4 @@ class InfrastructureQueries {
     }
 }
 
-module.exports = new InfrastructureQueries();
+export default new InfrastructureQueries();

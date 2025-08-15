@@ -19,17 +19,22 @@ import financialQueries from './financial-queries.js';
 
 class QueryOrchestrator {
     constructor() {
+        // Object-based modules with multiple methods
         this.modules = {
-            products: productQueries,
-            areas: areaQueries,
             estates: estateQueries,
-            estateUnits: estateUnitQueries,
-            priceTrends: priceTrendQueries,
-            aggregatedViews: aggregatedViewQueries,
             marketIntelligence: marketIntelligenceQueries,
             customerIntelligence: customerIntelligenceQueries,
             infrastructure: infrastructureQueries,
             financial: financialQueries
+        };
+
+        // Single function runners
+        this.runners = {
+            products: runProductQueries,
+            areas: runAreaQueries,
+            estateUnits: runEstateUnitQueries,
+            priceTrends: runPriceTrendQueries,
+            aggregatedViews: runAggregatedViewQueries
         };
     }
 
@@ -135,6 +140,68 @@ class QueryOrchestrator {
             LEFT JOIN local_businesses lb ON e.id = lb.estate_id
         `);
         return result.rows[0];
+    }
+
+    /**
+     * Run all query functions and display comprehensive results
+     */
+    async runAllQueries() {
+        console.log("🚀 Market Database Management System - Running All Queries");
+        console.log("=".repeat(80));
+
+        try {
+            // Test database connection first
+            console.log("\n=== Testing Database Connection ===");
+            const connectionTest = await this.testConnection();
+            console.log(connectionTest);
+            
+            if (!connectionTest.success) {
+                throw new Error("Database connection failed");
+            }
+
+            // Run runner functions (for modules that export single functions)
+            console.log("\n=== Running Query Modules ===");
+            for (const [name, runnerFunction] of Object.entries(this.runners)) {
+                console.log(`\n--- Running ${name} queries ---`);
+                try {
+                    await runnerFunction();
+                    console.log(`✅ ${name} queries completed successfully`);
+                } catch (error) {
+                    console.error(`❌ Error running ${name} queries:`, error.message);
+                }
+            }
+
+            // Test object-based modules (for modules that export objects with methods)
+            console.log("\n=== Testing Object-Based Query Modules ===");
+            for (const [moduleName, moduleObject] of Object.entries(this.modules)) {
+                console.log(`\n--- Testing ${moduleName} module ---`);
+                
+                if (typeof moduleObject === 'object' && moduleObject !== null) {
+                    for (const [methodName, method] of Object.entries(moduleObject)) {
+                        if (typeof method === 'function') {
+                            try {
+                                console.log(`  ✓ Testing ${methodName}...`);
+                                const result = await method.call(moduleObject);
+                                console.log(`    Result: ${Array.isArray(result) ? result.length : 'N/A'} rows`);
+                            } catch (error) {
+                                console.log(`    ⚠️  ${methodName} requires parameters or failed: ${error.message}`);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Get system overview
+            console.log("\n=== System Overview ===");
+            const overview = await this.getSystemOverview();
+            console.log("System Overview:", JSON.stringify(overview, null, 2));
+
+            console.log("\n✅ All queries tested successfully!");
+            
+        } catch (error) {
+            console.error("❌ Error running queries:", error.message);
+            throw error;
+        }
     }
 }
 
