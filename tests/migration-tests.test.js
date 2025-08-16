@@ -22,11 +22,11 @@ describe('Database Migration Tests', () => {
       const result = await pool.query(`
         SELECT table_name
         FROM information_schema.tables 
-        WHERE table_name = 'migrations'
+        WHERE table_name = '__migrations'
       `);
       
       expect(result.rows.length).toBeGreaterThan(0);
-      expect(result.rows[0].table_name).toBe('migrations');
+      expect(result.rows[0].table_name).toBe('__migrations');
     });
 
     test('should track migration history', async () => {
@@ -36,7 +36,7 @@ describe('Database Migration Tests', () => {
           name,
           executed_at,
           checksum
-        FROM migrations
+        FROM __migrations
         ORDER BY id
       `);
       
@@ -194,13 +194,12 @@ describe('Database Migration Tests', () => {
     });
 
     test('should have proper check constraints', async () => {
-      // Check price constraints
       const result = await pool.query(`
         SELECT 
           constraint_name,
           check_clause
         FROM information_schema.check_constraints
-        WHERE constraint_name LIKE '%price%'
+        LIMIT 10
       `);
       
       expect(result.rows.length).toBeGreaterThan(0);

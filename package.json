@@ -12,7 +12,7 @@
     "db:truncate": "node utils/db-management.js truncate",
     "db:drop": "node utils/db-management.js drop",
     "db:refresh": "node utils/db-management.js refresh",
-    "test": "npx jest",
+    "test": "npx cross-env NODE_OPTIONS=--experimental-vm-modules  npx jest",
     "test:watch": "npx jest --watch",
     "test:coverage": "npx jest --coverage",
     "test:integration": "npx jest --testPathPattern=integration",

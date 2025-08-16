@@ -28,7 +28,7 @@ describe('System Installation Tests', () => {
     test('should have correct database name', async () => {
       const result = await pool.query('SELECT current_database()');
       
-      expect(result.rows[0].current_database()).toBe('market_db');
+      expect(result.rows[0].current_database).toBe('market_db');
     });
 
     test('should have correct user permissions', async () => {
@@ -111,7 +111,7 @@ describe('System Installation Tests', () => {
       const result = await pool.query(`
         SELECT table_name
         FROM information_schema.tables
-        WHERE table_name = 'migrations'
+        WHERE table_name = '__migrations'
       `);
       
       expect(result.rows.length).toBeGreaterThan(0);

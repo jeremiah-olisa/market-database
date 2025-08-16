@@ -1,3 +1,5 @@
+import { jest } from '@jest/globals';
+
 /**
  * Jest Setup File for Market Database Tests
  * Configures test environment and global test utilities
