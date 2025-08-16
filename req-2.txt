@@ -1,3 +1,98 @@
+Market Database Foundational Setup Gig
+Posted 3 weeks ago
+Remote
+Description
+Gig Overview: We are building a centralized Market Database Management System to support segmentation, customer analysis, and product delivery. We need a backend dev to help us create the first version of the schema and populate it with mock data. This gig is the foundation for all future work on this platform
+
+Table names and structures are fixed; field names will be provided after the gig is accepted.
+
+Scope:
+
+-Build SQL schema for areas, estates (MDUs), standalone homes, internet plans, and customers
+
+-Implement foreign key relationships and constraints
+
+-Provide mock seeder data for initial testing
+
+-Provide a brief README that explains data relationships and sample queries
+
+Deliverables:
+
+-SQL file(s) for schema creation
+
+-Seeder script or SQL insert statements
+
+-README.md with setup instructions and relationships
+
+Filtering and Querying Requirements
+The database should support flexible filtering to enable insightful data extraction. This includes:
+
+-Enabling query operations by common fields (e.g. date, category, source)
+
+-Designing the schema to support aggregated views (e.g. counts, trends, comparisons)
+
+-Adding scopes or helper methods to support clean data retrieval
+
+-Considering likely filtering use-cases in table structure
+
+ Indexing
+Database indexes must be created on key fields used in filtering and joins to improve query performance. The techo should:
+
+-Add indexes on frequently queried fields
+
+-Avoid unnecessary indexes that slow down writes
+
+-Ensure compound indexes are used if multiple columns are frequently queried together
+
+Documentation
+
+-Clear inline code comments
+
+-A concise README with schema explanations, setup instructions, and design assumptions
+
+– Data Ingestion Readiness
+The techo should prepare the schema to support future data ingestion. This includes:
+
+-Ensuring fields such as timestamps, source identifiers, and unique constraints are present
+
+-Providing at least one basic data ingestion mechanism (e.g. script, mock seeder)
+
+-Avoiding hardcoding values that would limit dynamic imports
+
+-Clearly marking where future ingestion logic can be extended
+
+ 
+
+Tech Requirements:
+
+-SQL (PostgreSQL)
+
+-Seeder can be plain SQL or small script (PHP/Node preferred, but not required)
+
+ 
+
+Expectations: As a Techo chosen to participate in this gig, we have some expectations.
+
+ Timely Completion: complete each gig within the given timeframe. If the gig has not been
+
+completed within this frame, the project will be re-assigned.
+
+ 
+
+ Communication: Stay in touch with the Community Manager for guidance, support and
+
+feedback throughout the project. This can be done through the chat box in the My Gigs section
+
+underneath the gig description.
+
+ 
+
+Work-Ethic Alignment: Make a concerted effort to comply with our standards and follow our
+
+brand guidelines.
+
+
+
 Market Intelligence Database Foundational Setup Gig
 Posted 8 hours ago
 Remote

@@ -8,6 +8,9 @@
     "migrate": "node migrations/migrate.js",
     "seed": "node seeders/seed.js",
     "start": "node index.js",
+    "db:truncate": "node utils/db-management.js truncate",
+    "db:drop": "node utils/db-management.js drop",
+    "db:refresh": "node utils/db-management.js refresh",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -20,7 +23,8 @@
   },
   "dependencies": {
     "pg": "^8.11.3",
-    "pg-hstore": "^2.3.4"
+    "pg-hstore": "^2.3.4",
+    "@faker-js/faker": "^8.4.1"
   },
   "devDependencies": {
     "jest": "^29.7.0",
