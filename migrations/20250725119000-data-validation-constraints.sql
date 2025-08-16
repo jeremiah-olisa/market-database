@@ -94,8 +94,8 @@ ALTER TABLE profitability_analysis ADD CONSTRAINT check_net_profit_calculation
 ALTER TABLE demographics ADD CONSTRAINT fk_demographics_estate 
     FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
 
-ALTER TABLE service_providers ADD CONSTRAINT fk_service_providers_coverage_area 
-    FOREIGN KEY (coverage_area) REFERENCES areas(name) ON DELETE RESTRICT;
+-- Note: coverage_area is a GEOMETRY field, cannot reference VARCHAR areas.name
+-- Spatial relationships are handled through PostGIS spatial queries instead
 
 ALTER TABLE provider_coverage ADD CONSTRAINT fk_provider_coverage_provider 
     FOREIGN KEY (provider_id) REFERENCES service_providers(id) ON DELETE CASCADE;
@@ -119,28 +119,28 @@ ALTER TABLE local_businesses ADD CONSTRAINT fk_local_businesses_estate
     FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
 
 ALTER TABLE local_businesses ADD CONSTRAINT fk_local_businesses_category 
-    FOREIGN KEY (business_category) REFERENCES business_categories(id) ON DELETE RESTRICT;
+    FOREIGN KEY (category_id) REFERENCES business_categories(id) ON DELETE RESTRICT;
 
-ALTER TABLE business_metadata ADD CONSTRAINT fk_business_metadata_estate 
-    FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
+ALTER TABLE business_metadata ADD CONSTRAINT fk_business_metadata_business 
+    FOREIGN KEY (business_id) REFERENCES local_businesses(id) ON DELETE CASCADE;
 
 ALTER TABLE customer_profiles ADD CONSTRAINT fk_customer_profiles_estate 
     FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
 
-ALTER TABLE usage_patterns ADD CONSTRAINT fk_usage_patterns_estate 
-    FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
+ALTER TABLE usage_patterns ADD CONSTRAINT fk_usage_patterns_customer 
+    FOREIGN KEY (customer_id) REFERENCES customer_profiles(id) ON DELETE CASCADE;
 
-ALTER TABLE customer_feedback ADD CONSTRAINT fk_customer_feedback_estate 
-    FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
+ALTER TABLE customer_feedback ADD CONSTRAINT fk_customer_feedback_customer 
+    FOREIGN KEY (customer_id) REFERENCES customer_profiles(id) ON DELETE CASCADE;
 
-ALTER TABLE cross_service_adoption ADD CONSTRAINT fk_cross_service_adoption_estate 
-    FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
+ALTER TABLE cross_service_adoption ADD CONSTRAINT fk_cross_service_adoption_customer 
+    FOREIGN KEY (customer_id) REFERENCES customer_profiles(id) ON DELETE CASCADE;
 
 ALTER TABLE network_infrastructure ADD CONSTRAINT fk_network_infrastructure_estate 
     FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
 
-ALTER TABLE capacity_metrics ADD CONSTRAINT fk_capacity_metrics_estate 
-    FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
+ALTER TABLE capacity_metrics ADD CONSTRAINT fk_capacity_metrics_infrastructure 
+    FOREIGN KEY (infrastructure_id) REFERENCES network_infrastructure(id) ON DELETE CASCADE;
 
 ALTER TABLE infrastructure_investments ADD CONSTRAINT fk_infrastructure_investments_estate 
     FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
@@ -165,10 +165,10 @@ ALTER TABLE service_providers ADD CONSTRAINT unique_provider_name_service
     UNIQUE (name, service_type);
 
 ALTER TABLE business_categories ADD CONSTRAINT unique_category_name_type 
-    UNIQUE (category_name, business_type);
+    UNIQUE (name, business_type);
 
 ALTER TABLE local_businesses ADD CONSTRAINT unique_business_name_estate 
-    UNIQUE (business_name, estate_id);
+    UNIQUE (name, estate_id);
 
 -- Create triggers for data validation
 CREATE OR REPLACE FUNCTION validate_estate_tier_classification()
