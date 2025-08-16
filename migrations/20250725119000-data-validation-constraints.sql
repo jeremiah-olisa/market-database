@@ -48,7 +48,7 @@ ALTER TABLE usage_patterns ADD CONSTRAINT check_service_quality
     CHECK (service_quality_rating >= 1 AND service_quality_rating <= 5);
 
 ALTER TABLE network_infrastructure ADD CONSTRAINT check_capacity_positive 
-    CHECK (capacity_mbps > 0);
+    CHECK (capacity > 0);
 
 ALTER TABLE network_infrastructure ADD CONSTRAINT check_utilization_percentage 
     CHECK (current_utilization_percentage >= 0 AND current_utilization_percentage <= 100);
@@ -57,7 +57,7 @@ ALTER TABLE network_infrastructure ADD CONSTRAINT check_reliability_score
     CHECK (reliability_score >= 0 AND reliability_score <= 100);
 
 ALTER TABLE capacity_metrics ADD CONSTRAINT check_utilization_values 
-    CHECK (current_utilization >= 0 AND current_utilization <= 100);
+    CHECK (utilization_rate >= 0 AND utilization_rate <= 100);
 
 ALTER TABLE capacity_metrics ADD CONSTRAINT check_peak_utilization 
     CHECK (peak_utilization >= 0 AND peak_utilization <= 100);
@@ -253,7 +253,7 @@ RETURNS TRIGGER AS $$
 BEGIN
     -- Ensure geometry is within Nigeria bounds
     IF NEW.geometry IS NOT NULL THEN
-        IF NOT ST_Within(NEW.geometry, ST_GeomFromText('POLYGON((2.691702 6.258817, 14.577178 6.258817, 14.577178 13.892007, 2.691702 13.892007, 2.691702 6.258817))', 4326)) THEN
+        IF NOT ST_Within(NEW.geometry, ST_GeomFromText('POLYGON((2.691702 3.3000, 14.577178 3.3000, 14.577178 13.892007, 2.691702 13.892007, 2.691702 3.3000))', 4326)) THEN
             RAISE EXCEPTION 'Geometry must be within Nigeria bounds';
         END IF;
     END IF;

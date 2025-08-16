@@ -21,6 +21,10 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Create geospatial validation triggers for tables with geometry
+-- Drop existing triggers first to avoid conflicts
+DROP TRIGGER IF EXISTS geospatial_validation_areas ON areas;
+DROP TRIGGER IF EXISTS geospatial_validation_demographics ON demographics;
+
 CREATE TRIGGER geospatial_validation_areas
     BEFORE INSERT OR UPDATE ON areas
     FOR EACH ROW EXECUTE FUNCTION validate_geospatial_data();
