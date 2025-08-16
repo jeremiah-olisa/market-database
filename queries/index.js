@@ -1,7 +1,18 @@
 import { pool } from '../utils/index.js';
 
 // Import all query modules
+import { estateQueries } from './estateQueries.js';
+import { marketIntelligenceQueries } from './marketIntelligenceQueries.js';
+import { customerIntelligenceQueries } from './customerIntelligenceQueries.js';
+import { infrastructureQueries } from './infrastructureQueries.js';
+import { financialQueries } from './financialQueries.js';
 
+// Import single function runners
+import { runProductQueries } from './productQueries.js';
+import { runAreaQueries } from './areaQueries.js';
+import { runEstateUnitQueries } from './estateUnitQueries.js';
+import { runPriceTrendQueries } from './priceTrendQueries.js';
+import { runAggregatedViewQueries } from './aggregatedViewQueries.js';
 
 /**
  * Market Database Management System Query Orchestrator
@@ -72,8 +83,7 @@ class QueryOrchestrator {
                 totalEstates: await this.getEstatesCount(),
                 totalAreas: await this.getAreasCount(),
                 totalProducts: await this.getProductsCount(),
-                tierDistribution: await this.getTierDistribution(),
-                marketIntelligence: await this.getMarketIntelligenceSummary(),
+                classificationDistribution: await this.getClassificationDistribution(),
                 connectionStatus: await this.testConnection()
             };
             return overview;
@@ -100,37 +110,21 @@ class QueryOrchestrator {
         return parseInt(result.rows[0].count);
     }
 
-    async getTierDistribution() {
+    async getClassificationDistribution() {
         const result = await pool.query(`
             SELECT 
-                tier_classification,
+                classification,
                 COUNT(*) as count
             FROM estates 
-            GROUP BY tier_classification 
+            GROUP BY classification 
             ORDER BY 
-                CASE tier_classification 
-                    WHEN 'platinum' THEN 1 
-                    WHEN 'gold' THEN 2 
-                    WHEN 'silver' THEN 3 
-                    WHEN 'bronze' THEN 4 
+                CASE classification 
+                    WHEN 'luxury' THEN 1 
+                    WHEN 'middle_income' THEN 2 
+                    WHEN 'low_income' THEN 3 
                 END
         `);
         return result.rows;
-    }
-
-    async getMarketIntelligenceSummary() {
-        const result = await pool.query(`
-            SELECT 
-                COUNT(DISTINCT e.id) as total_estates,
-                COUNT(DISTINCT sp.id) as total_providers,
-                COUNT(DISTINCT lb.id) as total_businesses,
-                AVG(e.market_potential_score) as avg_market_potential,
-                COUNT(CASE WHEN e.tier_classification IN ('platinum', 'gold') THEN 1 END) as premium_estates
-            FROM estates e
-            LEFT JOIN service_providers sp ON sp.coverage_area @> e.geometry
-            LEFT JOIN local_businesses lb ON e.id = lb.estate_id
-        `);
-        return result.rows[0];
     }
 
     /**

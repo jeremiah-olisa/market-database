@@ -8,27 +8,19 @@ async function truncateAllTables() {
     // Disable triggers temporarily
     await client.query('SET session_replication_role = replica;');
 
-    // Truncate all tables in each schema
+    // Truncate all tables in the public schema
     await client.query(`
       DO $$ 
       DECLARE 
-        schema_rec record;
         table_rec record;
       BEGIN 
-        FOR schema_rec IN (SELECT schema_name 
-                          FROM information_schema.schemata 
-                          WHERE schema_name IN ('market_intelligence', 'customer_intelligence', 
-                                             'business_intelligence', 'infrastructure', 'financial')) 
+        FOR table_rec IN (SELECT table_name 
+                         FROM information_schema.tables 
+                         WHERE table_schema = 'public' 
+                         AND table_type = 'BASE TABLE'
+                         AND table_name != '__migrations') 
         LOOP
-          FOR table_rec IN (SELECT table_name 
-                           FROM information_schema.tables 
-                           WHERE table_schema = schema_rec.schema_name 
-                           AND table_type = 'BASE TABLE') 
-          LOOP
-            EXECUTE format('TRUNCATE TABLE %I.%I CASCADE', 
-                         schema_rec.schema_name, 
-                         table_rec.table_name);
-          END LOOP;
+          EXECUTE format('TRUNCATE TABLE %I CASCADE', table_rec.table_name);
         END LOOP;
       END $$;
     `);
@@ -52,7 +44,7 @@ async function dropAllTables() {
   try {
     await client.query('BEGIN');
 
-    // Drop materialized views first
+    // Drop materialized views first (if any exist)
     await client.query(`
       DO $$ 
       DECLARE 
@@ -60,8 +52,7 @@ async function dropAllTables() {
       BEGIN 
         FOR matview_rec IN (SELECT schemaname, matviewname 
                            FROM pg_matviews 
-                           WHERE schemaname IN ('market_intelligence', 'customer_intelligence', 
-                                              'business_intelligence', 'infrastructure', 'financial')) 
+                           WHERE schemaname = 'public') 
         LOOP
           EXECUTE format('DROP MATERIALIZED VIEW IF EXISTS %I.%I CASCADE', 
                         matview_rec.schemaname, 
@@ -70,24 +61,28 @@ async function dropAllTables() {
       END $$;
     `);
 
-    // Drop all tables in each schema
+    // Drop all tables in the public schema (except migrations table)
     await client.query(`
       DO $$ 
       DECLARE 
-        schema_rec record;
+        table_rec record;
       BEGIN 
-        FOR schema_rec IN (SELECT schema_name 
-                          FROM information_schema.schemata 
-                          WHERE schema_name IN ('market_intelligence', 'customer_intelligence', 
-                                             'business_intelligence', 'infrastructure', 'financial')) 
+        FOR table_rec IN (SELECT table_name 
+                         FROM information_schema.tables 
+                         WHERE table_schema = 'public' 
+                         AND table_type = 'BASE TABLE'
+                         AND table_name != '__migrations') 
         LOOP
-          EXECUTE format('DROP SCHEMA IF EXISTS %I CASCADE', schema_rec.schema_name);
+          EXECUTE format('DROP TABLE IF EXISTS %I CASCADE', table_rec.table_name);
         END LOOP;
       END $$;
     `);
 
+    // Drop PostGIS extension if it exists
+    await client.query('DROP EXTENSION IF EXISTS postgis CASCADE');
+
     await client.query('COMMIT');
-    console.log('💥 All tables and schemas dropped successfully');
+    console.log('💥 All tables dropped successfully');
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('❌ Error dropping tables:', err);
