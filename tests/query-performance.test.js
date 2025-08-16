@@ -19,11 +19,11 @@ describe('Query Performance Tests', () => {
 
   describe('Basic Query Performance', () => {
     const basicQueries = [
-      { name: 'Products Count', query: 'SELECT COUNT(*) FROM products' },
-      { name: 'Areas Count', query: 'SELECT COUNT(*) FROM areas' },
-      { name: 'Estates Count', query: 'SELECT COUNT(*) FROM estates' },
-      { name: 'Estate Units Count', query: 'SELECT COUNT(*) FROM estate_units' },
-      { name: 'Price Trends Count', query: 'SELECT COUNT(*) FROM price_trends' }
+      { name: 'Products Count', query: 'SELECT COUNT(id) FROM products' },
+      { name: 'Areas Count', query: 'SELECT COUNT(id) FROM areas' },
+      { name: 'Estates Count', query: 'SELECT COUNT(id) FROM estates' },
+      { name: 'Estate Units Count', query: 'SELECT COUNT(id) FROM estate_units' },
+      { name: 'Price Trends Count', query: 'SELECT COUNT(id) FROM price_trends' }
     ];
 
     test.each(basicQueries)('$name should execute in under 100ms', async ({ name, query }) => {

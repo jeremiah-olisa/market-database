@@ -34,7 +34,7 @@ describe('Database Migration Tests', () => {
         SELECT 
           id,
           name,
-          executed_at,
+          applied_at,
           checksum
         FROM __migrations
         ORDER BY id
@@ -46,7 +46,7 @@ describe('Database Migration Tests', () => {
       result.rows.forEach(row => {
         expect(row.id).toBeDefined();
         expect(row.name).toBeDefined();
-        expect(row.executed_at).toBeDefined();
+        expect(row.applied_at).toBeDefined();
         expect(row.checksum).toBeDefined();
       });
     });
