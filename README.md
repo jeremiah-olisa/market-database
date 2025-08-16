@@ -45,30 +45,20 @@ node index.js
 
 ### 🏗️ **System Architecture**
 - **[Schema Documentation](docs/schema.md)** - Complete database schema, tables, and relationships
-- **[API Reference](docs/api.md)** - Query system API and usage examples
-- **[System Architecture](docs/architecture.md)** - Overall system design and components
+- **[Queries Guide](docs/queries.md)** - Query system architecture and usage
 
 ### 🧪 **Testing & Quality**
 - **[Testing Guide](docs/testing.md)** - Comprehensive testing framework and test suites
-- **[Performance Benchmarks](docs/performance.md)** - Query performance metrics and optimization
-- **[Quality Assurance](docs/quality.md)** - Code quality standards and best practices
 
 ### 🚀 **Development & Operations**
 - **[Getting Started](docs/getting-started.md)** - Complete setup and installation guide
-- **[Development Guide](docs/development.md)** - Development workflow and coding standards
-- **[Deployment Guide](docs/deployment.md)** - Production deployment and configuration
-- **[Maintenance](docs/maintenance.md)** - System maintenance and monitoring
 
 ### 📊 **Data & Analytics**
 - **[Migrations Guide](docs/migrations.md)** - Database migration system and procedures
 - **[Seeders Guide](docs/seeders.md)** - Data seeding and sample data management
-- **[Queries Guide](docs/queries.md)** - Query system architecture and usage
-- **[Analytics Guide](docs/analytics.md)** - Business intelligence and reporting
 
 ### 🔧 **Configuration & Tools**
 - **[Package.json Commands](docs/package-commands.md)** - Available npm/pnpm scripts and commands
-- **[Environment Configuration](docs/environment.md)** - Environment variables and configuration
-- **[Docker Setup](docs/docker.md)** - Containerized development and deployment
 
 ## ✨ Key Features
 
@@ -92,11 +82,6 @@ node index.js
 
 ## 🏆 Current Status
 
-### ✅ **Completed Phases**
-- **Phase 1**: Database Setup & Migration ✅
-- **Phase 2**: Data Seeding ✅  
-- **Phase 3**: Query Implementation ✅
-- **Phase 4**: Testing & Documentation ✅
 
 ### 🚀 **System Capabilities**
 - **Core Tables**: 5 fully functional tables
@@ -167,7 +152,7 @@ node index.js
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](docs/contributing.md) for details.
+We welcome contributions! Please see our development workflow below for details.
 
 ### **Development Setup**
 ```bash
@@ -197,9 +182,9 @@ git push origin feature/amazing-feature
 - 📧 **Email**: Contact the development team
 
 ### **Common Issues**
-- **[Installation Problems](docs/troubleshooting.md#installation)**
-- **[Database Connection Issues](docs/troubleshooting.md#database)**
-- **[Performance Issues](docs/troubleshooting.md#performance)**
+- **[Installation Problems](docs/getting-started.md#troubleshooting)** - Setup and installation issues
+- **[Database Connection Issues](docs/getting-started.md#troubleshooting)** - Connection problems
+- **[Performance Issues](docs/testing.md#performance-benchmarks)** - Query performance optimization
 
 ## 📄 License
 
@@ -221,17 +206,6 @@ The Market Database Management System is **production-ready** and provides immed
 **Quick Links:**
 - 🚀 **[Getting Started](docs/getting-started.md)** - Set up in minutes
 - 🧪 **[Run Tests](docs/testing.md)** - Verify system integrity  
-- 📊 **[View Analytics](docs/analytics.md)** - Explore business insights
-- 🔧 **[Deploy](docs/deployment.md)** - Production deployment guide
+- 📊 **[View Queries](docs/queries.md)** - Explore business insights
+- 🗄️ **[Schema](docs/schema.md)** - Database structure reference
 
-**Business Value:**
-- 💰 **Immediate ROI** through market intelligence
-- 📈 **Data-driven decisions** for business growth
-- 🏠 **Real estate insights** for investment planning
-- 🚀 **Scalable platform** for future expansion
-
----
-
-*Last Updated: 2025-08-16*  
-*Version: 1.0.0*  
-*Phase 4 Complete - Production Ready* 🎯

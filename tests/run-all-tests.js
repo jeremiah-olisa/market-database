@@ -81,9 +81,9 @@ class Phase4TestRunner {
 }
 
 // Run tests if this file is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// if (import.meta.url === `file://${process.argv[1]}`) {
     const runner = new Phase4TestRunner();
     runner.runAllTests().catch(console.error);
-}
+// }
 
 export default Phase4TestRunner;
