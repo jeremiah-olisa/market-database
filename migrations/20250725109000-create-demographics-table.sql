@@ -22,9 +22,7 @@ CREATE INDEX idx_demographics_geometry ON demographics USING GIST(geometry);
 CREATE INDEX idx_demographics_age_groups_gin ON demographics USING GIN(age_groups);
 CREATE INDEX idx_demographics_income_levels_gin ON demographics USING GIN(income_levels);
 
--- Add constraint to ensure geometry is within Nigeria bounds
-ALTER TABLE demographics ADD CONSTRAINT check_nigeria_bounds 
-    CHECK (ST_Within(geometry, ST_GeomFromText('POLYGON((2.691702 3.3792, 14.577178 3.3792, 14.577178 13.892007, 2.691702 13.892007, 2.691702 3.3792))', 4326)));
+-- Note: Nigeria bounds constraint will be added in a separate migration after table creation
 
 -- Add trigger to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_demographics_updated_at()

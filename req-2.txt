@@ -1,0 +1,155 @@
+Market Intelligence Database Foundational Setup Gig
+Posted 8 hours ago
+Remote
+Description
+Company : We are a leading Internet company operating in Nigeria, currently based in Abuja. We serve multiple estates classified into tiers (Platinum, Gold, Silver, Bronze) based on characteristics like rent prices, demographics, and market potential. Beyond fiber internet, we have expanded into fintech, product delivery, money transfer, and mailing systems.
+
+Gig Overview : We are building a comprehensive Market Intelligence Database Management System that will serve as our central hub for estate analysis, customer insights, competitive intelligence and investment decision making. This system needs to provide deep market insights for any estate or area we are considering for expansion or investment.
+
+This gig establishes the foundational database schema that will power our market intelligence, customer segmentation, competitive analysis, and business expansion strategies.
+
+Business Context & Use Cases
+
+Our database must enable us to:
+
+Market Intelligence & Investment Decisions
+
+Analyze estate viability for our infrastructures investment
+Understand demographic profiles and purchasing power in target areas
+Track competitive landscape 
+Identify market gaps and opportunities
+ 
+
+Customer & Lifestyle Analytics
+
+Analyze customer internet usage patterns
+Track lifestyle indicators (restaurants, businesses, entertainment venues)
+Understand economic activities and business density per estate
+Monitor customer behavior and preferences
+Operational Intelligence
+
+Track our market penetration vs competitors
+Analyze service quality and customer satisfaction by area
+Monitor infrastructure utilization and capacity planning needs
+Assess cross-selling opportunities for our fintech and delivery services
+Business Expansion Analytics
+
+Identify high-potential areas for new services 
+Analyze market readiness for different service tiers
+Track ROI and performance metrics across different estate types
+Scope
+
+Core Database Requirements
+
+Estate/Area Management: Comprehensive estate profiles with tier classification
+Demographic Intelligence: Population, age groups, income levels, lifestyle indicators
+Competitive Analysis: Other service providers, their offerings, and market share
+Business Ecosystem: Local businesses, restaurants, companies, and service providers
+Infrastructure Mapping: Network coverage, quality metrics, and capacity data
+Customer Intelligence: Our customers, their usage patterns, and service adoption
+Market Metrics: Penetration rates, conversion rates, and growth indicators
+Financial Intelligence: Revenue potential, investment requirements, and ROI tracking
+Technical Requirements
+
+Data Redundancy: Ensure data integrity with proper normalization and backup strategies
+Flexible Schema: Support for both structured and unstructured data (JSON metadata fields)
+Connecting Tables: Proper foreign key relationships and junction tables for complex relationships
+Scalability: Design for future expansion and high-volume data ingestion
+Performance: Optimized for complex analytical queries and reporting
+ 
+
+Deliverables
+
+1. Database Schema (SQL Files)
+
+Complete DDL scripts for all tables
+Foreign key constraints and relationships
+Indexes on critical fields for performance
+JSON metadata fields for flexible data storage
+Data validation constraints and triggers
+2. Core Tables Structure
+
+Estate & Geographic Intelligence
+
+estates - Core estate information and tier classification
+areas - Broader area/district information
+demographics - Population and demographic data per estate (There should be a field with geometry data type, Postgresql allows it)
+estate_metadata - JSON field for flexible estate characteristics
+Market & Competitive Intelligence
+
+service_providers 
+provider_coverage - Service provider presence per estate
+service_offerings - Plans, pricing, and service details
+market_share_data - Competitive positioning and market share
+Business Ecosystem Intelligence
+
+local_businesses - Restaurants, shops, companies, services
+business_categories - Classification system for business types
+business_metadata - JSON field for business characteristics and offerings
+Customer & Usage Intelligence
+
+customer_profiles - Enhanced customer data with lifestyle indicators
+usage_patterns - Internet usage, service adoption, and behavior data
+customer_feedback - Reviews, complaints, and satisfaction metrics
+cross_service_adoption - Usage across our different service offerings
+Infrastructure & Network Intelligence
+
+network_infrastructure - Fiber, towers, coverage quality
+capacity_metrics - Network utilization and performance data
+infrastructure_investments - Investment tracking and ROI data
+Financial & Performance Intelligence
+
+revenue_analytics - Revenue performance per estate/area
+investment_tracking - Capital expenditure and returns
+market_opportunities - Identified opportunities and their potential
+3. Seeder Data
+
+Realistic mock data for estates
+Sample demographic profiles
+Competitive landscape data
+Local business ecosystem examples
+Customer usage patterns
+JSON metadata examples
+4. Documentation
+
+README.md with complete setup instructions
+Schema Documentation explaining all relationships
+Data Dictionary for all fields and their purposes
+Query Examples for common business intelligence scenarios
+Integration Guidelines for future data ingestion
+Technical Specifications
+
+Database Requirements
+
+PostgreSQL (latest stable version)
+JSON/JSONB support for metadata fields
+Full-text search capabilities for business and location data
+Geospatial support for location-based analytics
+Materialized views for complex analytical queries
+Performance & Indexing
+
+Compound indexes for multi-column queries
+JSON indexes for metadata searches
+Spatial indexes for location-based queries
+Partial indexes for filtered data sets
+Query optimization for analytical workloads
+Data Integrity & Redundancy
+
+Referential integrity constraints
+Data validation rules
+Audit trails for critical data changes
+Backup and recovery strategies
+Data consistency checks
+Technical Requirements
+
+Database: PostgreSQL with JSON/JSONB support
+Seeder: Plain SQL or script (PHP/Node.js preferred)
+Documentation: Markdown format with clear examples
+Version Control: Include migration scripts for schema updates
+Expectations
+
+Timely Completion: Complete the gig within the timeframe
+Communication: Regular updates via the chat system
+Quality Standards: Follow our technical standards and documentation requirements
+Future-Proofing: Design with scalability and extensibility in mind
+Business Alignment: Ensure the schema supports our multi-service business model

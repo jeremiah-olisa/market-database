@@ -1,16 +1,12 @@
--- Fix Nigeria bounds constraint for demographics table
--- The previous constraint had incorrect coordinate bounds that excluded valid Nigerian locations
+-- Add Nigeria bounds constraint and geospatial validation after all tables are created
+-- This ensures that the constraint is added after the table structure is complete
 
--- Drop the existing constraint
-ALTER TABLE demographics DROP CONSTRAINT IF EXISTS check_nigeria_bounds;
-
--- Recreate the constraint with correct Nigeria bounds
--- Nigeria spans approximately from longitude 2.691702 to 14.577178 and latitude 3.3792 to 13.892007
+-- Add constraint to ensure geometry is within Nigeria bounds for demographics table
 ALTER TABLE demographics ADD CONSTRAINT check_nigeria_bounds 
     CHECK (ST_Within(geometry, ST_GeomFromText('POLYGON((2.691702 3.3792, 14.577178 3.3792, 14.577178 13.892007, 2.691702 13.892007, 2.691702 3.3792))', 4326)));
 
--- Also update the trigger function to use the correct bounds
-CREATE OR REPLACE FUNCTION validate_nigeria_bounds()
+-- Create geospatial validation function
+CREATE OR REPLACE FUNCTION validate_geospatial_data()
 RETURNS TRIGGER AS $$
 BEGIN
     -- Ensure geometry is within Nigeria bounds
@@ -19,6 +15,18 @@ BEGIN
             RAISE EXCEPTION 'Geometry must be within Nigeria bounds';
         END IF;
     END IF;
+    
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Create geospatial validation triggers for tables with geometry
+CREATE TRIGGER geospatial_validation_areas
+    BEFORE INSERT OR UPDATE ON areas
+    FOR EACH ROW EXECUTE FUNCTION validate_geospatial_data();
+
+CREATE TRIGGER geospatial_validation_demographics
+    BEFORE INSERT OR UPDATE ON demographics
+    FOR EACH ROW EXECUTE FUNCTION validate_geospatial_data();
+
+-- Note: local_businesses table might not exist yet, so we'll add that trigger separately if needed
