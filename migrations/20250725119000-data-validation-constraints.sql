@@ -1,24 +1,6 @@
 -- Data validation, constraints, and system integrity checks
 -- This migration implements comprehensive data validation and business rules
 
--- First, ensure all required columns exist in the estates table
--- These columns should have been added by migration 20250725108000-enhance-existing-tables.sql
-DO $$ 
-BEGIN
-    -- Add columns if they don't exist (safety check)
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'estates' AND column_name = 'market_potential_score') THEN
-        ALTER TABLE estates ADD COLUMN market_potential_score DECIMAL(5,2);
-    END IF;
-    
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'estates' AND column_name = 'competitive_intensity') THEN
-        ALTER TABLE estates ADD COLUMN competitive_intensity INTEGER;
-    END IF;
-    
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'estates' AND column_name = 'tier_classification') THEN
-        ALTER TABLE estates ADD COLUMN tier_classification VARCHAR(20);
-    END IF;
-END $$;
-
 -- Create check constraints for data integrity
 ALTER TABLE estates ADD CONSTRAINT check_market_potential_score 
     CHECK (market_potential_score >= 0 AND market_potential_score <= 100);
@@ -26,77 +8,62 @@ ALTER TABLE estates ADD CONSTRAINT check_market_potential_score
 ALTER TABLE estates ADD CONSTRAINT check_competitive_intensity 
     CHECK (competitive_intensity >= 1 AND competitive_intensity <= 10);
 
--- Only add demographics constraints if the table exists
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'demographics') THEN
-        ALTER TABLE demographics ADD CONSTRAINT check_population_positive 
-            CHECK (population > 0);
+ALTER TABLE demographics ADD CONSTRAINT check_population_positive 
+    CHECK (population > 0);
 
-        ALTER TABLE demographics ADD CONSTRAINT check_employment_rate 
-            CHECK (employment_rate >= 0 AND employment_rate <= 100);
+ALTER TABLE demographics ADD CONSTRAINT check_employment_rate 
+    CHECK (employment_rate >= 0 AND employment_rate <= 100);
 
-        ALTER TABLE demographics ADD CONSTRAINT check_household_size 
-            CHECK (household_size > 0 AND household_size <= 10);
-    END IF;
-END $$;
+ALTER TABLE demographics ADD CONSTRAINT check_household_size 
+    CHECK (household_size > 0 AND household_size <= 10);
 
--- Only add revenue_metrics constraints if the table exists
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'revenue_metrics') THEN
-        ALTER TABLE revenue_metrics ADD CONSTRAINT check_revenue_positive 
-            CHECK (revenue_amount > 0);
+ALTER TABLE revenue_metrics ADD CONSTRAINT check_revenue_positive 
+    CHECK (revenue_amount > 0);
 
-        ALTER TABLE revenue_metrics ADD CONSTRAINT check_customer_count_positive 
-            CHECK (customer_count > 0);
+ALTER TABLE revenue_metrics ADD CONSTRAINT check_customer_count_positive 
+    CHECK (customer_count > 0);
 
-        ALTER TABLE revenue_metrics ADD CONSTRAINT check_average_revenue_positive 
-            CHECK (average_revenue_per_customer > 0);
-    END IF;
-END $$;
+ALTER TABLE revenue_metrics ADD CONSTRAINT check_average_revenue_positive 
+    CHECK (average_revenue_per_customer > 0);
 
--- Only add cost_metrics constraints if the table exists
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'cost_metrics') THEN
-        ALTER TABLE cost_metrics ADD CONSTRAINT check_cost_positive 
-            CHECK (amount > 0);
-    END IF;
-END $$;
+ALTER TABLE cost_metrics ADD CONSTRAINT check_cost_positive 
+    CHECK (amount > 0);
 
--- Only add profitability_analysis constraints if the table exists
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'profitability_analysis') THEN
-        ALTER TABLE profitability_analysis ADD CONSTRAINT check_profit_margin 
-            CHECK (profit_margin_percentage >= -100 AND profit_margin_percentage <= 100);
+ALTER TABLE profitability_analysis ADD CONSTRAINT check_profit_margin 
+    CHECK (profit_margin_percentage >= -100 AND profit_margin_percentage <= 100);
 
-        ALTER TABLE profitability_analysis ADD CONSTRAINT check_roi_percentage 
-            CHECK (roi_percentage >= -100 AND roi_percentage <= 1000);
-    END IF;
-END $$;
+ALTER TABLE profitability_analysis ADD CONSTRAINT check_roi_percentage 
+    CHECK (roi_percentage >= -100 AND roi_percentage <= 1000);
 
--- Only add network_infrastructure constraints if the table exists
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'network_infrastructure') THEN
-        ALTER TABLE network_infrastructure ADD CONSTRAINT check_capacity_positive 
-            CHECK (capacity > 0);
+ALTER TABLE customer_profiles ADD CONSTRAINT check_satisfaction_score 
+    CHECK (satisfaction_score >= 1 AND satisfaction_score <= 5);
 
-        ALTER TABLE network_infrastructure ADD CONSTRAINT check_coverage_quality 
-            CHECK (coverage_quality >= 0 AND coverage_quality <= 5);
-    END IF;
-END $$;
+ALTER TABLE customer_profiles ADD CONSTRAINT check_tenure_months 
+    CHECK (tenure_months >= 0);
 
--- Only add capacity_metrics constraints if the table exists
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'capacity_metrics') THEN
-        ALTER TABLE capacity_metrics ADD CONSTRAINT check_utilization_rate 
-            CHECK (utilization_rate >= 0 AND utilization_rate <= 100);
-    END IF;
-END $$;
+ALTER TABLE usage_patterns ADD CONSTRAINT check_data_consumption 
+    CHECK (data_consumption_gb IS NULL OR data_consumption_gb >= 0);
+
+ALTER TABLE usage_patterns ADD CONSTRAINT check_service_quality 
+    CHECK (service_quality_rating >= 1 AND service_quality_rating <= 5);
+
+ALTER TABLE network_infrastructure ADD CONSTRAINT check_capacity_positive 
+    CHECK (capacity_mbps > 0);
+
+ALTER TABLE network_infrastructure ADD CONSTRAINT check_utilization_percentage 
+    CHECK (current_utilization_percentage >= 0 AND current_utilization_percentage <= 100);
+
+ALTER TABLE network_infrastructure ADD CONSTRAINT check_reliability_score 
+    CHECK (reliability_score >= 0 AND reliability_score <= 100);
+
+ALTER TABLE capacity_metrics ADD CONSTRAINT check_utilization_values 
+    CHECK (current_utilization >= 0 AND current_utilization <= 100);
+
+ALTER TABLE capacity_metrics ADD CONSTRAINT check_peak_utilization 
+    CHECK (peak_utilization >= 0 AND peak_utilization <= 100);
+
+ALTER TABLE capacity_metrics ADD CONSTRAINT check_availability_percentage 
+    CHECK (availability_percentage >= 0 AND availability_percentage <= 100);
 
 -- Create business rule constraints
 ALTER TABLE estates ADD CONSTRAINT check_platinum_requirements 
@@ -111,153 +78,97 @@ ALTER TABLE estates ADD CONSTRAINT check_gold_requirements
         (tier_classification = 'gold' AND market_potential_score >= 60 AND competitive_intensity <= 5)
     );
 
--- Only add revenue_metrics business rule constraints if the table exists
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'revenue_metrics') THEN
-        ALTER TABLE revenue_metrics ADD CONSTRAINT check_revenue_customer_consistency 
-            CHECK (
-                (customer_count = 0 AND revenue_amount = 0) OR 
-                (customer_count > 0 AND revenue_amount > 0)
-            );
-    END IF;
-END $$;
+ALTER TABLE revenue_metrics ADD CONSTRAINT check_revenue_customer_consistency 
+    CHECK (
+        (customer_count = 0 AND revenue_amount = 0) OR 
+        (customer_count > 0 AND revenue_amount > 0)
+    );
 
--- Only add profitability_analysis business rule constraints if the table exists
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'profitability_analysis') THEN
-        ALTER TABLE profitability_analysis ADD CONSTRAINT check_profit_calculation 
-            CHECK (gross_profit = total_revenue - total_costs);
+ALTER TABLE profitability_analysis ADD CONSTRAINT check_profit_calculation 
+    CHECK (gross_profit = total_revenue - total_costs);
 
-        ALTER TABLE profitability_analysis ADD CONSTRAINT check_net_profit_calculation 
-            CHECK (net_profit <= gross_profit);
-    END IF;
-END $$;
+ALTER TABLE profitability_analysis ADD CONSTRAINT check_net_profit_calculation 
+    CHECK (net_profit <= gross_profit);
 
 -- Create foreign key constraints for referential integrity
--- Only add if the referenced tables exist
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'demographics') THEN
-        ALTER TABLE demographics ADD CONSTRAINT fk_demographics_estate 
-            FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'provider_coverage') THEN
-        ALTER TABLE provider_coverage ADD CONSTRAINT fk_provider_coverage_provider 
-            FOREIGN KEY (provider_id) REFERENCES service_providers(id) ON DELETE CASCADE;
-            
-        ALTER TABLE provider_coverage ADD CONSTRAINT fk_provider_coverage_estate 
-            FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'service_offerings') THEN
-        ALTER TABLE service_offerings ADD CONSTRAINT fk_service_offerings_provider 
-            FOREIGN KEY (provider_id) REFERENCES service_providers(id) ON DELETE CASCADE;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'market_share_data') THEN
-        ALTER TABLE market_share_data ADD CONSTRAINT fk_market_share_provider 
-            FOREIGN KEY (provider_id) REFERENCES service_providers(id) ON DELETE CASCADE;
-            
-        ALTER TABLE market_share_data ADD CONSTRAINT fk_market_share_estate 
-            FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'local_businesses') THEN
-        ALTER TABLE local_businesses ADD CONSTRAINT fk_local_businesses_estate 
-            FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
-    END IF;
-    
-    -- Note: business_metadata table has business_id column, not estate_id
-    -- The foreign key constraint is already defined in the table creation
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'customer_profiles') THEN
-        ALTER TABLE customer_profiles ADD CONSTRAINT fk_customer_profiles_estate 
-            FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'usage_patterns') THEN
-        ALTER TABLE usage_patterns ADD CONSTRAINT fk_usage_patterns_customer 
-            FOREIGN KEY (customer_id) REFERENCES customer_profiles(id) ON DELETE CASCADE;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'customer_feedback') THEN
-        ALTER TABLE customer_feedback ADD CONSTRAINT fk_customer_feedback_customer 
-            FOREIGN KEY (customer_id) REFERENCES customer_profiles(id) ON DELETE CASCADE;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'cross_service_adoption') THEN
-        ALTER TABLE cross_service_adoption ADD CONSTRAINT fk_cross_service_adoption_customer 
-            FOREIGN KEY (customer_id) REFERENCES customer_profiles(id) ON DELETE CASCADE;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'network_infrastructure') THEN
-        ALTER TABLE network_infrastructure ADD CONSTRAINT fk_network_infrastructure_estate 
-            FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'capacity_metrics') THEN
-        ALTER TABLE capacity_metrics ADD CONSTRAINT fk_capacity_metrics_infrastructure 
-            FOREIGN KEY (infrastructure_id) REFERENCES network_infrastructure(id) ON DELETE CASCADE;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'infrastructure_investments') THEN
-        ALTER TABLE infrastructure_investments ADD CONSTRAINT fk_infrastructure_investments_estate 
-            FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'revenue_metrics') THEN
-        ALTER TABLE revenue_metrics ADD CONSTRAINT fk_revenue_metrics_estate 
-            FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
-            
-        ALTER TABLE revenue_metrics ADD CONSTRAINT fk_revenue_metrics_product 
-            FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'cost_metrics') THEN
-        ALTER TABLE cost_metrics ADD CONSTRAINT fk_cost_metrics_estate 
-            FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'profitability_analysis') THEN
-        ALTER TABLE profitability_analysis ADD CONSTRAINT fk_profitability_analysis_estate 
-            FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
-    END IF;
-END $$;
+ALTER TABLE demographics ADD CONSTRAINT fk_demographics_estate 
+    FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
 
--- Create business rule constraints for business_categories
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'business_categories') THEN
-        ALTER TABLE business_categories ADD CONSTRAINT fk_business_categories_business_type 
-            CHECK (business_type IN ('retail', 'food_service', 'healthcare', 'education', 'entertainment', 'professional_services'));
-    END IF;
-END $$;
+-- Note: coverage_area is a GEOMETRY field, cannot reference VARCHAR areas.name
+-- Spatial relationships are handled through PostGIS spatial queries instead
+
+ALTER TABLE provider_coverage ADD CONSTRAINT fk_provider_coverage_provider 
+    FOREIGN KEY (provider_id) REFERENCES service_providers(id) ON DELETE CASCADE;
+
+ALTER TABLE provider_coverage ADD CONSTRAINT fk_provider_coverage_estate 
+    FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
+
+ALTER TABLE service_offerings ADD CONSTRAINT fk_service_offerings_provider 
+    FOREIGN KEY (provider_id) REFERENCES service_providers(id) ON DELETE CASCADE;
+
+ALTER TABLE market_share_data ADD CONSTRAINT fk_market_share_provider 
+    FOREIGN KEY (provider_id) REFERENCES service_providers(id) ON DELETE CASCADE;
+
+ALTER TABLE market_share_data ADD CONSTRAINT fk_market_share_estate 
+    FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
+
+ALTER TABLE business_categories ADD CONSTRAINT fk_business_categories_business_type 
+    CHECK (business_type IN ('retail', 'food_service', 'healthcare', 'education', 'entertainment', 'professional_services'));
+
+ALTER TABLE local_businesses ADD CONSTRAINT fk_local_businesses_estate 
+    FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
+
+ALTER TABLE local_businesses ADD CONSTRAINT fk_local_businesses_category 
+    FOREIGN KEY (category_id) REFERENCES business_categories(id) ON DELETE RESTRICT;
+
+ALTER TABLE business_metadata ADD CONSTRAINT fk_business_metadata_business 
+    FOREIGN KEY (business_id) REFERENCES local_businesses(id) ON DELETE CASCADE;
+
+ALTER TABLE customer_profiles ADD CONSTRAINT fk_customer_profiles_estate 
+    FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
+
+ALTER TABLE usage_patterns ADD CONSTRAINT fk_usage_patterns_customer 
+    FOREIGN KEY (customer_id) REFERENCES customer_profiles(id) ON DELETE CASCADE;
+
+ALTER TABLE customer_feedback ADD CONSTRAINT fk_customer_feedback_customer 
+    FOREIGN KEY (customer_id) REFERENCES customer_profiles(id) ON DELETE CASCADE;
+
+ALTER TABLE cross_service_adoption ADD CONSTRAINT fk_cross_service_adoption_customer 
+    FOREIGN KEY (customer_id) REFERENCES customer_profiles(id) ON DELETE CASCADE;
+
+ALTER TABLE network_infrastructure ADD CONSTRAINT fk_network_infrastructure_estate 
+    FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
+
+ALTER TABLE capacity_metrics ADD CONSTRAINT fk_capacity_metrics_infrastructure 
+    FOREIGN KEY (infrastructure_id) REFERENCES network_infrastructure(id) ON DELETE CASCADE;
+
+ALTER TABLE infrastructure_investments ADD CONSTRAINT fk_infrastructure_investments_estate 
+    FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
+
+ALTER TABLE revenue_metrics ADD CONSTRAINT fk_revenue_metrics_estate 
+    FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
+
+ALTER TABLE revenue_metrics ADD CONSTRAINT fk_revenue_metrics_product 
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT;
+
+ALTER TABLE cost_metrics ADD CONSTRAINT fk_cost_metrics_estate 
+    FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
+
+ALTER TABLE profitability_analysis ADD CONSTRAINT fk_profitability_analysis_estate 
+    FOREIGN KEY (estate_id) REFERENCES estates(id) ON DELETE CASCADE;
 
 -- Create unique constraints
 ALTER TABLE estates ADD CONSTRAINT unique_estate_name_area 
     UNIQUE (name, area_id);
 
--- Only add unique constraints if the tables exist
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'service_providers') THEN
-        ALTER TABLE service_providers ADD CONSTRAINT unique_provider_name_service 
-            UNIQUE (name, service_type);
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'business_categories') THEN
-        ALTER TABLE business_categories ADD CONSTRAINT unique_category_name_type 
-            UNIQUE (name, business_type);
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'local_businesses') THEN
-        ALTER TABLE local_businesses ADD CONSTRAINT unique_business_name_estate 
-            UNIQUE (name, estate_id);
-    END IF;
-END $$;
+ALTER TABLE service_providers ADD CONSTRAINT unique_provider_name_service 
+    UNIQUE (name, service_type);
+
+ALTER TABLE business_categories ADD CONSTRAINT unique_category_name_type 
+    UNIQUE (name, business_type);
+
+ALTER TABLE local_businesses ADD CONSTRAINT unique_business_name_estate 
+    UNIQUE (name, estate_id);
 
 -- Create triggers for data validation
 CREATE OR REPLACE FUNCTION validate_estate_tier_classification()
@@ -280,7 +191,7 @@ CREATE TRIGGER estate_tier_classification_validation
     BEFORE INSERT OR UPDATE ON estates
     FOR EACH ROW EXECUTE FUNCTION validate_estate_tier_classification();
 
--- Create function for revenue consistency validation
+-- Create trigger for revenue consistency
 CREATE OR REPLACE FUNCTION validate_revenue_consistency()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -304,7 +215,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create function for profitability validation
+CREATE TRIGGER revenue_consistency_validation
+    BEFORE INSERT OR UPDATE ON revenue_metrics
+    FOR EACH ROW EXECUTE FUNCTION validate_revenue_consistency();
+
+-- Create trigger for profitability validation
 CREATE OR REPLACE FUNCTION validate_profitability()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -328,7 +243,38 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create function for audit metadata changes
+CREATE TRIGGER profitability_validation
+    BEFORE INSERT OR UPDATE ON profitability_analysis
+    FOR EACH ROW EXECUTE FUNCTION validate_profitability();
+
+-- Create trigger for geospatial validation
+CREATE OR REPLACE FUNCTION validate_geospatial_data()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Ensure geometry is within Nigeria bounds
+    IF NEW.geometry IS NOT NULL THEN
+        IF NOT ST_Within(NEW.geometry, ST_GeomFromText('POLYGON((2.691702 6.258817, 14.577178 6.258817, 14.577178 13.892007, 2.691702 13.892007, 2.691702 6.258817))', 4326)) THEN
+            RAISE EXCEPTION 'Geometry must be within Nigeria bounds';
+        END IF;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER geospatial_validation_areas
+    BEFORE INSERT OR UPDATE ON areas
+    FOR EACH ROW EXECUTE FUNCTION validate_geospatial_data();
+
+CREATE TRIGGER geospatial_validation_demographics
+    BEFORE INSERT OR UPDATE ON demographics
+    FOR EACH ROW EXECUTE FUNCTION validate_geospatial_data();
+
+CREATE TRIGGER geospatial_validation_local_businesses
+    BEFORE INSERT OR UPDATE ON local_businesses
+    FOR EACH ROW EXECUTE FUNCTION validate_geospatial_data();
+
+-- Create audit trigger for critical tables
 CREATE OR REPLACE FUNCTION audit_metadata_changes()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -349,27 +295,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create triggers for validation (only if tables exist)
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'revenue_metrics') THEN
-        CREATE TRIGGER revenue_consistency_validation
-            BEFORE INSERT OR UPDATE ON revenue_metrics
-            FOR EACH ROW EXECUTE FUNCTION validate_revenue_consistency();
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'profitability_analysis') THEN
-        CREATE TRIGGER profitability_validation
-            BEFORE INSERT OR UPDATE ON profitability_analysis
-            FOR EACH ROW EXECUTE FUNCTION validate_profitability();
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'dynamic_metadata') THEN
-        CREATE TRIGGER audit_dynamic_metadata_changes
-            AFTER INSERT OR UPDATE OR DELETE ON dynamic_metadata
-            FOR EACH ROW EXECUTE FUNCTION audit_metadata_changes();
-    END IF;
-END $$;
+CREATE TRIGGER audit_dynamic_metadata_changes
+    AFTER INSERT OR UPDATE OR DELETE ON dynamic_metadata
+    FOR EACH ROW EXECUTE FUNCTION audit_metadata_changes();
 
 -- Create function to check data integrity
 CREATE OR REPLACE FUNCTION check_data_integrity()
@@ -451,51 +379,15 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO postgres;
 
 -- Create indexes for performance on validation queries
 CREATE INDEX IF NOT EXISTS idx_estates_tier_validation ON estates(tier_classification, market_potential_score, competitive_intensity);
+CREATE INDEX IF NOT EXISTS idx_revenue_metrics_validation ON revenue_metrics(customer_count, revenue_amount);
+CREATE INDEX IF NOT EXISTS idx_profitability_validation ON profitability_analysis(total_revenue, total_costs, gross_profit, net_profit);
 
--- Only create indexes if the tables exist
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'revenue_metrics') THEN
-        CREATE INDEX IF NOT EXISTS idx_revenue_metrics_validation ON revenue_metrics(customer_count, revenue_amount);
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'profitability_analysis') THEN
-        CREATE INDEX IF NOT EXISTS idx_profitability_validation ON profitability_analysis(total_revenue, total_costs, gross_profit, net_profit);
-    END IF;
-END $$;
-
--- Analyze tables after adding constraints (only if they exist)
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'estates') THEN
-        ANALYZE estates;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'demographics') THEN
-        ANALYZE demographics;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'revenue_metrics') THEN
-        ANALYZE revenue_metrics;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'cost_metrics') THEN
-        ANALYZE cost_metrics;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'profitability_analysis') THEN
-        ANALYZE profitability_analysis;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'customer_profiles') THEN
-        ANALYZE customer_profiles;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'network_infrastructure') THEN
-        ANALYZE network_infrastructure;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'dynamic_metadata') THEN
-        ANALYZE dynamic_metadata;
-    END IF;
-END $$;
+-- Analyze tables after adding constraints
+ANALYZE estates;
+ANALYZE demographics;
+ANALYZE revenue_metrics;
+ANALYZE cost_metrics;
+ANALYZE profitability_analysis;
+ANALYZE customer_profiles;
+ANALYZE network_infrastructure;
+ANALYZE dynamic_metadata;
