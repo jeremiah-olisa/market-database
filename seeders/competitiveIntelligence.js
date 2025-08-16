@@ -136,57 +136,57 @@ export async function seedCompetitiveServiceComparison(client) {
   }
 }
 
-// export async function seedBusinessDensityMetrics(client) {
-//   console.log('🏢 Seeding business density metrics...');
-//   
-//   const { rows: estates } = await client.query('SELECT id FROM estates');
-//   
-//   for (const estate of estates) {
-//     const businessCount = randomInt(10, 100);
-//     const businessDensity = randomDecimal(50, 500, 2); // businesses per km²
-//     const footTraffic = randomInt(1000, 10000);
-//     
-//     await client.query(
-//       `INSERT INTO business_density_metrics (
-//          estate_id, business_count, business_density_per_sqkm,
-//          foot_traffic_daily, business_variety_score,
-//          economic_activity_level, metadata
-//        )
-//        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-//       [
-//         estate.id,
-//         businessCount,
-//         businessDensity,
-//         footTraffic,
-//         randomDecimal(3.0, 5.0, 1),
-//         randomChoice(['low', 'medium', 'high', 'very_high']),
-//         JSON.stringify({
-//           'business_categories': {
-//             'retail': Math.floor(businessCount * randomDecimal(0.20, 0.40, 2)),
-//             'food_beverage': Math.floor(businessCount * randomDecimal(0.15, 0.30, 2)),
-//             'services': Math.floor(businessCount * randomDecimal(0.20, 0.35, 2)),
-//             'entertainment': Math.floor(businessCount * randomDecimal(0.05, 0.20, 2)),
-//             'healthcare': Math.floor(businessCount * randomDecimal(0.05, 0.15, 2)),
-//             'education': Math.floor(businessCount * randomDecimal(0.03, 0.12, 2))
-//           },
-//           'business_hours': {
-//             'early_morning': randomInt(5, 15),
-//             'morning': randomInt(20, 40),
-//             'afternoon': randomInt(30, 60),
-//             'evening': randomInt(25, 50),
-//             'late_night': randomInt(5, 20)
-//           },
-//           'economic_indicators': {
-//             'average_rent': randomDecimal(500000, 5000000, 2),
-//             'employment_rate': randomDecimal(70, 95, 2),
-//             'income_level': randomChoice(['low', 'middle', 'high']),
-//             'spending_power': randomChoice(['limited', 'moderate', 'high', 'premium'])
-//           }
-//         })
-//       ]
-//     );
-//   }
-// }
+export async function seedBusinessDensityMetrics(client) {
+  console.log('🏢 Seeding business density metrics...');
+  
+  const { rows: estates } = await client.query('SELECT id FROM estates');
+  
+  for (const estate of estates) {
+    const businessCount = randomInt(10, 100);
+    const businessDensity = randomDecimal(50, 500, 2); // businesses per km²
+    const footTraffic = randomInt(1000, 10000);
+    
+    await client.query(
+      `INSERT INTO business_density_metrics (
+         estate_id, business_count, business_density_per_sqkm,
+         foot_traffic_daily, business_variety_score,
+         economic_activity_level, metadata
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        estate.id,
+        businessCount,
+        businessDensity,
+        footTraffic,
+        randomDecimal(3.0, 5.0, 1),
+        randomChoice(['low', 'medium', 'high', 'very_high']),
+        JSON.stringify({
+          'business_categories': {
+            'retail': Math.floor(businessCount * randomDecimal(0.20, 0.40, 2)),
+            'food_beverage': Math.floor(businessCount * randomDecimal(0.15, 0.30, 2)),
+            'services': Math.floor(businessCount * randomDecimal(0.20, 0.35, 2)),
+            'entertainment': Math.floor(businessCount * randomDecimal(0.05, 0.20, 2)),
+            'healthcare': Math.floor(businessCount * randomDecimal(0.05, 0.15, 2)),
+            'education': Math.floor(businessCount * randomDecimal(0.03, 0.12, 2))
+          },
+          'business_hours': {
+            'early_morning': randomInt(5, 15),
+            'morning': randomInt(20, 40),
+            'afternoon': randomInt(30, 60),
+            'evening': randomInt(25, 50),
+            'late_night': randomInt(5, 20)
+          },
+          'economic_indicators': {
+            'average_rent': randomDecimal(500000, 5000000, 2),
+            'employment_rate': randomDecimal(70, 95, 2),
+            'income_level': randomChoice(['low', 'middle', 'high']),
+            'spending_power': randomChoice(['limited', 'moderate', 'high', 'premium'])
+          }
+        })
+      ]
+    );
+  }
+}
 
 export async function seedCrossSellingOpportunities(client) {
   console.log('🔄 Seeding cross-selling opportunities...');

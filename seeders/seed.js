@@ -69,7 +69,6 @@ import {
 import {
   seedMarketPenetrationMetrics,
   seedCompetitiveServiceComparison,
-  seedBusinessDensityMetrics,
   seedCrossSellingOpportunities,
   seedMarketReadinessMetrics,
 } from "./competitiveIntelligence.js";
@@ -149,7 +148,6 @@ async function seed() {
     console.log("\n🏆 Phase 9: Seeding Competitive Intelligence...");
     await seedMarketPenetrationMetrics(client);
     await seedCompetitiveServiceComparison(client);
-    await seedBusinessDensityMetrics(client);
     await seedCrossSellingOpportunities(client);
     await seedMarketReadinessMetrics(client);
 
