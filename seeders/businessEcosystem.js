@@ -22,11 +22,16 @@ export async function seedBusinessCategories(client) {
   ];
 
   for (const category of rootCategories) {
+    // Create valid ltree path: convert to lowercase, replace spaces and special chars with underscores
+    const path = category.name.toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '') // Remove special characters except spaces
+      .replace(/\s+/g, '_'); // Replace spaces with underscores
+    
     await client.query(
       `INSERT INTO business_categories (name, description, level, path)
        VALUES ($1, $2, $3, $4)
        RETURNING id`,
-      [category.name, category.description, 1, category.name.toLowerCase().replace(/[^a-z0-9]/g, '.')]
+      [category.name, category.description, 1, path]
     );
   }
 
@@ -37,6 +42,17 @@ export async function seedBusinessCategories(client) {
     const subcategories = BUSINESS_CATEGORIES[rootCat.name.split(' & ')[0]] || [];
     
     for (const subcat of subcategories) {
+      // Create valid ltree path: parent_path.child_path
+      const parentPath = rootCat.name.toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, '_');
+      
+      const childPath = subcat.toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, '_');
+      
+      const fullPath = `${parentPath}.${childPath}`;
+      
       await client.query(
         `INSERT INTO business_categories (name, parent_id, description, level, path)
          VALUES ($1, $2, $3, $4, $5)
@@ -46,7 +62,7 @@ export async function seedBusinessCategories(client) {
           rootCat.id,
           `${subcat} services`,
           2,
-          `${rootCat.name.toLowerCase().replace(/[^a-z0-9]/g, '.')}.${subcat.toLowerCase().replace(/[^a-z0-9]/g, '.')}`
+          fullPath
         ]
       );
     }

@@ -9,30 +9,37 @@ export async function seedExpandedServiceMetrics(client) {
   console.log('🚀 Seeding expanded service metrics...');
   
   const { rows: estates } = await client.query('SELECT id FROM estates');
-  const serviceTypes = ['fintech', 'delivery', 'mailing', 'smart_home', 'security'];
+  const serviceCategories = ['internet', 'fintech', 'delivery', 'money_transfer', 'mailing', 'other'];
   
   for (const estate of estates) {
-    for (const serviceType of serviceTypes) {
+    for (const serviceCategory of serviceCategories) {
       if (Math.random() > 0.2) { // 80% chance of offering each service
-        const adoptionRate = randomDecimal(15, 85, 2);
-        const monthlyTransactions = randomInt(100, 5000);
-        const averageTransactionValue = randomDecimal(1000, 50000, 2);
+        const period = new Date();
+        period.setMonth(period.getMonth() - randomInt(0, 6)); // Random date in last 6 months
         
         await client.query(
           `INSERT INTO expanded_service_metrics (
-             estate_id, service_type, adoption_rate,
-             monthly_transactions, average_transaction_value,
-             currency, customer_satisfaction, metadata
+             estate_id, service_category, period, total_transactions,
+             transaction_volume, active_users, service_coverage_percentage,
+             adoption_rate, performance_metrics, usage_patterns
            )
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           ON CONFLICT (estate_id, service_category, period) DO NOTHING`,
           [
             estate.id,
-            serviceType,
-            adoptionRate,
-            monthlyTransactions,
-            averageTransactionValue,
-            'NGN',
-            randomDecimal(3.5, 5.0, 1),
+            serviceCategory,
+            period.toISOString().split('T')[0],
+            randomInt(100, 5000),
+            randomDecimal(1000000, 50000000, 2),
+            randomInt(50, 1000),
+            randomDecimal(60, 95, 2),
+            randomDecimal(15, 85, 2),
+            JSON.stringify({
+              response_time: randomDecimal(50, 200, 2),
+              uptime_percentage: randomDecimal(95, 99.9, 2),
+              error_rate: randomDecimal(0.1, 2.0, 3),
+              customer_satisfaction: randomDecimal(3.5, 5.0, 1)
+            }),
             JSON.stringify({
               peak_usage_hours: {
                 morning: randomInt(8, 15),
@@ -62,55 +69,71 @@ export async function seedDeliveryCoverageZones(client) {
   console.log('📦 Seeding delivery coverage zones...');
   
   const { rows: estates } = await client.query('SELECT id, name FROM estates');
-  const deliveryTypes = ['food_delivery', 'package_delivery', 'grocery_delivery', 'pharmacy_delivery', 'document_delivery'];
+  const serviceLevels = ['standard', 'express', 'premium'];
   
   for (const estate of estates) {
     const numZones = randomInt(1, 3); // 1-3 delivery zones per estate
     
     for (let i = 0; i < numZones; i++) {
-      const deliveryType = randomChoice(deliveryTypes);
       const coords = generateNigerianCoordinates();
-      const location = `SRID=4326;POINT(${coords.longitude} ${coords.latitude})`;
+      const radius = randomDecimal(1.0, 10.0, 2);
+      
+      // Create a simple polygon around the center point
+      const centerLon = coords.longitude;
+      const centerLat = coords.latitude;
+      const offset = radius / 111; // Rough conversion from km to degrees
+      
+      const polygon = `SRID=4326;POLYGON((
+        ${centerLon - offset} ${centerLat - offset},
+        ${centerLon + offset} ${centerLat - offset},
+        ${centerLon + offset} ${centerLat + offset},
+        ${centerLon - offset} ${centerLat + offset},
+        ${centerLon - offset} ${centerLat - offset}
+      ))`;
       
       const zone = {
         estate_id: estate.id,
-        delivery_type: deliveryType,
-        zone_name: `${estate.name} ${deliveryType.replace('_', ' ')} Zone ${i + 1}`,
-        coverage_radius_km: randomDecimal(1.0, 10.0, 2),
-        delivery_time_minutes: randomInt(15, 120),
-        service_level: randomChoice(['standard', 'express', 'premium']),
-        location: location,
-        operational_hours: randomChoice(['8AM-8PM', '6AM-10PM', '24/7', '9AM-6PM'])
+        zone_name: `${estate.name} Delivery Zone ${i + 1}`,
+        coverage_area: polygon,
+        service_level: randomChoice(serviceLevels),
+        delivery_partners: randomInt(2, 10),
+        average_delivery_time: randomInt(15, 120),
+        coverage_score: randomInt(70, 100),
+        operational_hours: JSON.stringify({
+          monday: '8AM-8PM',
+          tuesday: '8AM-8PM',
+          wednesday: '8AM-8PM',
+          thursday: '8AM-8PM',
+          friday: '8AM-8PM',
+          saturday: '9AM-6PM',
+          sunday: '10AM-4PM'
+        }),
+        delivery_constraints: JSON.stringify([
+          'Weather dependent',
+          'Traffic conditions',
+          'Package size limits',
+          'Delivery time windows'
+        ])
       };
 
       await client.query(
         `INSERT INTO delivery_coverage_zones (
-           estate_id, delivery_type, zone_name, coverage_radius_km,
-           delivery_time_minutes, service_level, location,
-           operational_hours, delivery_metrics, metadata
+           estate_id, zone_name, coverage_area, service_level,
+           delivery_partners, average_delivery_time, coverage_score,
+           operational_hours, delivery_constraints
          )
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         ON CONFLICT DO NOTHING`,
         [
           zone.estate_id,
-          zone.delivery_type,
           zone.zone_name,
-          zone.coverage_radius_km,
-          zone.delivery_time_minutes,
+          zone.coverage_area,
           zone.service_level,
-          zone.location,
+          zone.delivery_partners,
+          zone.average_delivery_time,
+          zone.coverage_score,
           zone.operational_hours,
-          JSON.stringify({
-            daily_orders: randomInt(50, 500),
-            average_order_value: randomDecimal(2000, 25000, 2),
-            delivery_success_rate: randomDecimal(95, 99.5, 2),
-            customer_rating: randomDecimal(4.0, 5.0, 1)
-          }),
-          JSON.stringify({
-            delivery_partners: randomChoice(['In-house', 'Third-party', 'Hybrid']),
-            vehicle_types: randomChoice(['Motorcycles', 'Cars', 'Bicycles', 'Mixed']),
-            payment_methods: ['Cash', 'Card', 'Mobile Money', 'Bank Transfer'],
-            special_services: ['Scheduled Delivery', 'Gift Wrapping', 'Temperature Control', 'Signature Required']
-          })
+          zone.delivery_constraints
         ]
       );
     }
@@ -126,38 +149,31 @@ export async function seedFintechServiceMetrics(client) {
   for (const estate of estates) {
     for (const service of fintechServices) {
       if (Math.random() > 0.3) { // 70% chance of offering each fintech service
-        const monthlyUsers = randomInt(100, 2000);
-        const monthlyVolume = randomDecimal(1000000, 100000000, 2);
-        const averageTransactionSize = randomDecimal(5000, 100000, 2);
+        const period = new Date();
+        period.setMonth(period.getMonth() - randomInt(0, 6)); // Random date in last 6 months
         
         await client.query(
           `INSERT INTO fintech_service_metrics (
-             estate_id, service_type, monthly_active_users,
-             monthly_transaction_volume, average_transaction_size,
-             currency, user_growth_rate, risk_metrics, metadata
+             estate_id, service_type, period, transaction_count,
+             transaction_volume, active_users, user_demographics,
+             usage_patterns, risk_metrics
            )
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+           ON CONFLICT (estate_id, service_type, period) DO NOTHING`,
           [
             estate.id,
             service,
-            monthlyUsers,
-            monthlyVolume,
-            averageTransactionSize,
-            'NGN',
-            randomDecimal(5, 25, 2), // 5-25% monthly growth
+            period.toISOString().split('T')[0],
+            randomInt(100, 5000),
+            randomDecimal(1000000, 100000000, 2),
+            randomInt(100, 2000),
             JSON.stringify({
-              fraud_rate: randomDecimal(0.1, 2.0, 3),
-              chargeback_rate: randomDecimal(0.5, 3.0, 3),
-              default_rate: randomDecimal(1.0, 8.0, 2),
-              compliance_score: randomDecimal(85, 100, 2)
+              '18-25': randomInt(15, 35),
+              '26-35': randomInt(25, 45),
+              '36-50': randomInt(20, 40),
+              '50+': randomInt(10, 25)
             }),
             JSON.stringify({
-              user_demographics: {
-                '18-25': randomInt(15, 35),
-                '26-35': randomInt(25, 45),
-                '36-50': randomInt(20, 40),
-                '50+': randomInt(10, 25)
-              },
               transaction_patterns: {
                 'morning': randomInt(10, 25),
                 'afternoon': randomInt(20, 35),
@@ -166,6 +182,12 @@ export async function seedFintechServiceMetrics(client) {
               },
               security_features: ['2FA', 'Biometric', 'Encryption', 'Fraud Detection'],
               regulatory_compliance: ['CBN Guidelines', 'NDIC Coverage', 'AML/KYC', 'Data Protection']
+            }),
+            JSON.stringify({
+              fraud_rate: randomDecimal(0.1, 2.0, 3),
+              chargeback_rate: randomDecimal(0.5, 3.0, 3),
+              default_rate: randomDecimal(1.0, 8.0, 2),
+              compliance_score: randomDecimal(85, 100, 2)
             })
           ]
         );
@@ -177,61 +199,45 @@ export async function seedFintechServiceMetrics(client) {
 export async function seedMailingSystemMetrics(client) {
   console.log('📮 Seeding mailing system metrics...');
   
-  const { rows: estates } = await client.query('SELECT id, name FROM estates');
-  const mailingServices = ['package_delivery', 'document_services', 'parcel_tracking', 'mailbox_rental', 'courier_services'];
+  const { rows: estates } = await client.query('SELECT id FROM estates');
   
   for (const estate of estates) {
-    const numServices = randomInt(1, 4); // 1-4 mailing services per estate
+    const period = new Date();
+    period.setMonth(period.getMonth() - randomInt(0, 6)); // Random date in last 6 months
     
-    for (let i = 0; i < numServices; i++) {
-      const service = randomChoice(mailingServices);
-      const dailyVolume = randomInt(20, 200);
-      const averageProcessingTime = randomInt(1, 24); // hours
-      
-      const mailingService = {
-        estate_id: estate.id,
-        service_type: service,
-        service_name: `${estate.name} ${service.replace('_', ' ')} Service`,
-        daily_volume: dailyVolume,
-        average_processing_time_hours: averageProcessingTime,
-        service_quality: randomChoice(['excellent', 'good', 'fair', 'poor']),
-        customer_satisfaction: randomDecimal(3.5, 5.0, 1)
-      };
-
-      await client.query(
-        `INSERT INTO mailing_system_metrics (
-           estate_id, service_type, service_name, daily_volume,
-           average_processing_time_hours, service_quality,
-           customer_satisfaction, operational_metrics, metadata
-         )
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-        [
-          mailingService.estate_id,
-          mailingService.service_type,
-          mailingService.service_name,
-          mailingService.daily_volume,
-          mailingService.average_processing_time_hours,
-          mailingService.service_quality,
-          mailingService.customer_satisfaction,
-          JSON.stringify({
-            peak_hours: {
-              '9AM-11AM': randomInt(20, 40),
-              '11AM-2PM': randomInt(15, 30),
-              '2PM-5PM': randomInt(25, 45),
-              '5PM-7PM': randomInt(10, 25)
-            },
-            delivery_success_rate: randomDecimal(95, 99.5, 2),
-            average_delivery_time: randomInt(1, 48), // hours
-            return_rate: randomDecimal(1, 8, 2)
-          }),
-          JSON.stringify({
-            facility_features: ['Secure Storage', 'Climate Control', '24/7 Access', 'Security Cameras'],
-            service_options: ['Standard', 'Express', 'Overnight', 'Scheduled'],
-            tracking_capabilities: ['Real-time Updates', 'SMS Notifications', 'Email Alerts', 'Mobile App'],
-            special_handling: ['Fragile Items', 'Temperature Sensitive', 'High Value', 'Oversized']
-          })
-        ]
-      );
-    }
+    await client.query(
+      `INSERT INTO mailing_system_metrics (
+         estate_id, period, total_mailboxes, active_mailboxes,
+         total_packages, average_processing_time, service_usage_metrics,
+         operational_metrics
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       ON CONFLICT (estate_id, period) DO NOTHING`,
+      [
+        estate.id,
+        period.toISOString().split('T')[0],
+        randomInt(50, 200),
+        randomInt(30, 150),
+        randomInt(100, 1000),
+        randomInt(30, 180), // 30 minutes to 3 hours
+        JSON.stringify({
+          peak_hours: {
+            '9AM-11AM': randomInt(20, 40),
+            '11AM-2PM': randomInt(15, 30),
+            '2PM-5PM': randomInt(25, 45),
+            '5PM-7PM': randomInt(10, 25)
+          },
+          delivery_success_rate: randomDecimal(95, 99.5, 2),
+          average_delivery_time: randomInt(1, 48), // hours
+          return_rate: randomDecimal(1, 8, 2)
+        }),
+        JSON.stringify({
+          facility_features: ['Secure Storage', 'Climate Control', '24/7 Access', 'Security Cameras'],
+          service_options: ['Standard', 'Express', 'Overnight', 'Scheduled'],
+          tracking_capabilities: ['Real-time Updates', 'SMS Notifications', 'Email Alerts', 'Mobile App'],
+          special_handling: ['Fragile Items', 'Temperature Sensitive', 'High Value', 'Oversized']
+        })
+      ]
+    );
   }
 }

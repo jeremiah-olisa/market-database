@@ -11,20 +11,23 @@ export async function seedDemographics(client) {
   
   for (const estate of estates) {
     const totalPopulation = randomInt(500, 5000);
-    const householdCount = Math.floor(totalPopulation / randomInt(3, 6)); // 3-6 people per household
+    const avgHouseholdSize = randomDecimal(3.0, 6.0, 2);
+    const avgHouseholdIncome = randomDecimal(500000, 5000000, 2);
     
     await client.query(
       `INSERT INTO demographics (
-         estate_id, total_population, household_count,
-         age_distribution, income_distribution,
-         occupation_distribution, education_levels,
-         family_composition, metadata
+         estate_id, total_population, avg_household_size,
+         avg_household_income, age_distribution, income_distribution,
+         occupation_distribution, education_levels, lifestyle_indicators,
+         updated_date, metadata
        )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       ON CONFLICT (estate_id) DO NOTHING`,
       [
         estate.id,
         totalPopulation,
-        householdCount,
+        avgHouseholdSize,
+        avgHouseholdIncome,
         JSON.stringify({
           '0-17': Math.floor(totalPopulation * randomDecimal(0.15, 0.35, 2)),
           '18-25': Math.floor(totalPopulation * randomDecimal(0.10, 0.25, 2)),
@@ -55,17 +58,17 @@ export async function seedDemographics(client) {
           'Vocational': Math.floor(totalPopulation * randomDecimal(0.05, 0.15, 2))
         }),
         JSON.stringify({
-          'Single': Math.floor(householdCount * randomDecimal(0.15, 0.30, 2)),
-          'Married': Math.floor(householdCount * randomDecimal(0.40, 0.60, 2)),
-          'Divorced': Math.floor(householdCount * randomDecimal(0.05, 0.15, 2)),
-          'Widowed': Math.floor(householdCount * randomDecimal(0.02, 0.10, 2)),
-          'Living Together': Math.floor(householdCount * randomDecimal(0.05, 0.15, 2))
-        }),
-        JSON.stringify({
           'ethnicity': randomChoice(['Mixed', 'Hausa', 'Yoruba', 'Igbo', 'Other']),
           'religion': randomChoice(['Christianity', 'Islam', 'Traditional', 'Other']),
           'language_preference': randomChoice(['English', 'Hausa', 'Yoruba', 'Igbo', 'Mixed']),
           'migration_pattern': randomChoice(['Local', 'Regional', 'National', 'International'])
+        }),
+        new Date().toISOString().split('T')[0],
+        JSON.stringify({
+          'data_source': 'Census and Surveys',
+          'last_updated_by': randomChoice(['Data Team', 'Analytics Team', 'External Vendor']),
+          'quality_score': randomDecimal(85, 100, 2),
+          'completeness': randomDecimal(90, 100, 2)
         })
       ]
     );
@@ -76,6 +79,7 @@ export async function seedRevenueAnalytics(client) {
   console.log('💰 Seeding revenue analytics...');
   
   const { rows: estates } = await client.query('SELECT id FROM estates');
+  const revenueTypes = ['internet_services', 'smart_home', 'security_services', 'fintech_services', 'delivery_services'];
   
   // Generate 12 months of revenue data
   const startDate = new Date();
@@ -86,48 +90,43 @@ export async function seedRevenueAnalytics(client) {
     revenueDate.setMonth(revenueDate.getMonth() + month);
     
     for (const estate of estates) {
-      const monthlyRevenue = randomDecimal(5000000, 50000000, 2);
-      const customerCount = randomInt(100, 1000);
-      const churnRate = randomDecimal(2, 8, 2);
-      const growthRate = randomDecimal(-5, 15, 2);
-      
-      await client.query(
-        `INSERT INTO revenue_analytics (
-           estate_id, period, monthly_revenue, customer_count,
-           churn_rate, growth_rate, currency,
-           revenue_breakdown, performance_metrics, metadata
-         )
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-        [
-          estate.id,
-          revenueDate.toISOString().split('T')[0],
-          monthlyRevenue,
-          customerCount,
-          churnRate,
-          growthRate,
-          'NGN',
-          JSON.stringify({
-            'internet_services': Math.floor(monthlyRevenue * randomDecimal(0.40, 0.70, 2)),
-            'smart_home': Math.floor(monthlyRevenue * randomDecimal(0.10, 0.25, 2)),
-            'security_services': Math.floor(monthlyRevenue * randomDecimal(0.05, 0.20, 2)),
-            'fintech_services': Math.floor(monthlyRevenue * randomDecimal(0.05, 0.15, 2)),
-            'delivery_services': Math.floor(monthlyRevenue * randomDecimal(0.02, 0.10, 2)),
-            'other_services': Math.floor(monthlyRevenue * randomDecimal(0.02, 0.08, 2))
-          }),
-          JSON.stringify({
-            'average_revenue_per_customer': Math.floor(monthlyRevenue / customerCount),
-            'customer_lifetime_value': Math.floor((monthlyRevenue / customerCount) * randomInt(12, 60)),
-            'acquisition_cost': Math.floor((monthlyRevenue / customerCount) * randomDecimal(0.1, 0.3, 2)),
-            'retention_rate': 100 - churnRate
-          }),
-          JSON.stringify({
-            'seasonal_factors': randomChoice(['Peak Season', 'Off Season', 'Holiday Period', 'Regular Period']),
-            'market_conditions': randomChoice(['Favorable', 'Stable', 'Challenging', 'Recession']),
-            'competitive_pressure': randomChoice(['Low', 'Medium', 'High', 'Very High']),
-            'regulatory_environment': randomChoice(['Supportive', 'Neutral', 'Restrictive', 'Changing'])
-          })
-        ]
-      );
+      for (const revenueType of revenueTypes) {
+        if (Math.random() > 0.3) { // 70% chance of having each revenue type
+          const amount = randomDecimal(1000000, 20000000, 2);
+          const customerCount = randomInt(50, 500);
+          const growthRate = randomDecimal(-5, 15, 2);
+          
+          await client.query(
+            `INSERT INTO revenue_analytics (
+               estate_id, period, revenue_type, amount, currency,
+               customer_count, growth_rate, performance_metrics, metadata
+             )
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+             ON CONFLICT (estate_id, period, revenue_type) DO NOTHING`,
+            [
+              estate.id,
+              revenueDate.toISOString().split('T')[0],
+              revenueType,
+              amount,
+              'NGN',
+              customerCount,
+              growthRate,
+              JSON.stringify({
+                'average_revenue_per_customer': Math.floor(amount / customerCount),
+                'customer_lifetime_value': Math.floor((amount / customerCount) * randomInt(12, 60)),
+                'acquisition_cost': Math.floor((amount / customerCount) * randomDecimal(0.1, 0.3, 2)),
+                'retention_rate': randomDecimal(85, 98, 2)
+              }),
+              JSON.stringify({
+                'seasonal_factors': randomChoice(['Peak Season', 'Off Season', 'Holiday Period', 'Regular Period']),
+                'market_conditions': randomChoice(['Favorable', 'Stable', 'Challenging', 'Recession']),
+                'competitive_pressure': randomChoice(['Low', 'Medium', 'High', 'Very High']),
+                'regulatory_environment': randomChoice(['Supportive', 'Neutral', 'Restrictive', 'Changing'])
+              })
+            ]
+          );
+        }
+      }
     }
   }
 }
@@ -143,27 +142,31 @@ export async function seedMarketOpportunities(client) {
     
     for (let i = 0; i < numOpportunities; i++) {
       const opportunityType = randomChoice(opportunityTypes);
-      const marketSize = randomDecimal(10000000, 500000000, 2);
-      const estimatedROI = randomDecimal(25, 75, 2);
-      const implementationTime = randomInt(6, 36); // months
+      const potentialRevenue = randomDecimal(10000000, 500000000, 2);
+      const marketSize = randomInt(1000000, 10000000);
+      const implementationCost = randomDecimal(5000000, 100000000, 2);
+      const roiEstimate = randomDecimal(25, 75, 2);
+      const priorityScore = randomInt(60, 100);
       
       await client.query(
         `INSERT INTO market_opportunities (
-           estate_id, opportunity_type, name, description,
-           market_size, estimated_roi, implementation_time_months,
-           risk_level, priority, status, metadata
+           estate_id, opportunity_type, potential_revenue, currency,
+           probability, competition_level, market_size, implementation_cost,
+           roi_estimate, priority_score, status, analysis_data, metadata
          )
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+         ON CONFLICT DO NOTHING`,
         [
           estate.id,
           opportunityType,
-          `${estate.name} ${opportunityType.replace('_', ' ')} Opportunity`,
-          `Strategic ${opportunityType.replace('_', ' ')} opportunity for ${estate.name} with high growth potential`,
+          potentialRevenue,
+          'NGN',
+          randomDecimal(60, 95, 2), // probability 60-95%
+          randomInt(1, 5), // competition level 1-5
           marketSize,
-          estimatedROI,
-          implementationTime,
-          randomChoice(['low', 'medium', 'high']),
-          randomChoice(['low', 'medium', 'high', 'critical']),
+          implementationCost,
+          roiEstimate,
+          priorityScore,
           randomChoice(['identified', 'analyzing', 'approved', 'in_progress', 'completed']),
           JSON.stringify({
             'market_demand': randomDecimal(70, 95, 2),
@@ -177,10 +180,10 @@ export async function seedMarketOpportunities(client) {
             'success_criteria': ['Revenue Growth', 'Market Share Increase', 'Customer Satisfaction', 'ROI Achievement'],
             'risk_mitigation': ['Market Research', 'Pilot Testing', 'Phased Implementation', 'Expert Consultation'],
             'timeline': {
-              'planning': Math.floor(implementationTime * 0.2),
-              'development': Math.floor(implementationTime * 0.5),
-              'testing': Math.floor(implementationTime * 0.2),
-              'launch': Math.floor(implementationTime * 0.1)
+              'planning': randomInt(1, 3),
+              'development': randomInt(3, 8),
+              'testing': randomInt(1, 3),
+              'launch': randomInt(1, 2)
             }
           })
         ]
@@ -198,26 +201,32 @@ export async function seedServiceQualityMetrics(client) {
   for (const estate of estates) {
     for (const serviceType of serviceTypes) {
       if (Math.random() > 0.2) { // 80% chance of offering each service
-        const satisfactionScore = randomDecimal(3.5, 5.0, 1);
-        const responseTime = randomInt(5, 120); // minutes
-        const uptime = randomDecimal(95, 99.9, 2);
+        const period = new Date();
+        period.setMonth(period.getMonth() - randomInt(0, 6)); // Random date in last 6 months
+        
+        const uptimePercentage = randomDecimal(95, 99.9, 2);
+        const avgResponseTime = randomInt(5, 120); // milliseconds
+        const customerSatisfactionScore = randomDecimal(3.5, 5.0, 2);
+        const incidentCount = randomInt(0, 10);
+        const resolutionTimeAvg = randomInt(30, 1440); // minutes (30 min to 24 hours)
         
         await client.query(
           `INSERT INTO service_quality_metrics (
-             estate_id, service_type, satisfaction_score,
-             response_time_minutes, uptime_percentage,
-             incident_count, resolution_time_hours,
-             quality_metrics, metadata
+             estate_id, service_type, period, uptime_percentage,
+             avg_response_time, customer_satisfaction_score,
+             incident_count, resolution_time_avg, quality_metrics, metadata
            )
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           ON CONFLICT (estate_id, service_type, period) DO NOTHING`,
           [
             estate.id,
             serviceType,
-            satisfactionScore,
-            responseTime,
-            uptime,
-            randomInt(0, 10),
-            randomDecimal(1, 24, 2),
+            period.toISOString().split('T')[0],
+            uptimePercentage,
+            avgResponseTime,
+            customerSatisfactionScore,
+            incidentCount,
+            resolutionTimeAvg,
             JSON.stringify({
               'reliability': randomDecimal(85, 98, 2),
               'availability': randomDecimal(90, 99.5, 2),
@@ -230,9 +239,9 @@ export async function seedServiceQualityMetrics(client) {
               'monitoring_tools': ['Real-time Analytics', 'Performance Dashboards', 'Alert Systems'],
               'improvement_initiatives': ['Customer Feedback Analysis', 'Process Optimization', 'Technology Upgrades'],
               'benchmarking': {
-                'industry_average': randomDecimal(3.0, 4.5, 1),
-                'competitor_analysis': randomDecimal(3.2, 4.8, 1),
-                'internal_targets': randomDecimal(4.0, 5.0, 1)
+                'industry_average': randomDecimal(3.0, 4.5, 2),
+                'competitor_analysis': randomDecimal(3.2, 4.8, 2),
+                'internal_targets': randomDecimal(4.0, 5.0, 2)
               }
             })
           ]

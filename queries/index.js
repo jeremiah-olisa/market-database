@@ -1,16 +1,7 @@
 import { pool } from '../utils/index.js';
 
 // Import all query modules
-import { runProductQueries } from './products-queries.js';
-import { runAreaQueries } from './areas-queries.js';
-import estateQueries from './estates-queries.js';
-import { runEstateUnitQueries } from './estate-units-queries.js';
-import { runPriceTrendQueries } from './price-trends-queries.js';
-import { runAggregatedViewQueries } from './aggregated-views-queries.js';
-import marketIntelligenceQueries from './market-intelligence-queries.js';
-import customerIntelligenceQueries from './customer-intelligence-queries.js';
-import infrastructureQueries from './infrastructure-queries.js';
-import financialQueries from './financial-queries.js';
+
 
 /**
  * Market Database Management System Query Orchestrator
