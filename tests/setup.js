@@ -56,6 +56,35 @@ global.testUtils = {
       }
       return true;
     });
+  },
+
+  // Query plan analysis helper
+  analyzeQueryPlan(pool, query) {
+    return pool.query(`EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${query}`)
+      .then(result => {
+        const planData = result.rows[0]['QUERY PLAN'];
+        if (!planData || !Array.isArray(planData) || planData.length === 0) {
+          throw new Error('EXPLAIN query did not return expected format');
+        }
+        return planData[0];
+      });
+  },
+
+  // Check if query uses indexes
+  checkIndexUsage(plan) {
+    const nodeType = plan['Node Type'];
+    if (!nodeType) return false;
+    
+    return (
+      nodeType.includes('Index Scan') || 
+      nodeType.includes('Bitmap Index Scan') ||
+      nodeType.includes('Index Only Scan')
+    );
+  },
+
+  // Get execution time from plan
+  getExecutionTime(plan) {
+    return plan['Execution Time'] || plan['Actual Total Time'] || null;
   }
 };
 
