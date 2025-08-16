@@ -301,11 +301,11 @@ describe('System Installation Tests', () => {
     test('should have check constraints', async () => {
       const result = await pool.query(`
         SELECT 
-          table_name,
-          constraint_name,
-          check_clause
+          constraint_schema,
+          constraint_catalog
         FROM information_schema.check_constraints
-        LIMIT 10
+        WHERE constraint_schema = 'public' AND constraint_catalog = 'market_db'
+        LIMIT 1
       `);
       
       expect(result.rows.length).toBeGreaterThan(0);
