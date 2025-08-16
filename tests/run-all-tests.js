@@ -1,17 +1,21 @@
-import SchemaValidationTests from './schema-validation.test.js';
-import MigrationTests from './migration-tests.test.js';
-import QueryPerformanceTests from './query-performance.test.js';
+import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /**
- * Phase 4 Test Runner
- * Executes all test suites for comprehensive system validation
+ * Jest Test Runner for Market Database
+ * Executes all test suites using Jest for comprehensive system validation
  */
-class Phase4TestRunner {
+class JestTestRunner {
     constructor() {
         this.testSuites = [
-            { name: 'Schema Validation', runner: new SchemaValidationTests() },
-            { name: 'Migration Tests', runner: new MigrationTests() },
-            { name: 'Query Performance', runner: new QueryPerformanceTests() }
+            'schema-validation.test.js',
+            'migration-tests.test.js',
+            'installation-tests.test.js',
+            'query-performance.test.js'
         ];
         this.results = {
             totalSuites: 0,
@@ -23,28 +27,46 @@ class Phase4TestRunner {
     }
 
     async runAllTests() {
-        console.log("🚀 PHASE 4: COMPREHENSIVE TESTING & DOCUMENTATION");
+        console.log("🚀 PHASE 4: COMPREHENSIVE TESTING WITH JEST");
         console.log("=".repeat(80));
         console.log("🎯 Testing Schema, Migrations, Queries, and Installation");
         console.log("=".repeat(80));
 
         this.results.startTime = Date.now();
 
-        for (const suite of this.testSuites) {
-            try {
-                console.log(`\n📋 Running ${suite.name} Tests...`);
-                console.log("-".repeat(60));
-                
-                await suite.runner.runAllTests();
-                this.results.passedSuites++;
-                console.log(`✅ ${suite.name} completed successfully`);
-                
-            } catch (error) {
-                this.results.failedSuites++;
-                console.error(`❌ ${suite.name} failed:`, error.message);
-            }
+        try {
+            // Run Jest with all test files
+            console.log("\n📋 Running Jest Test Suite...");
+            console.log("-".repeat(60));
             
-            this.results.totalSuites++;
+            const jestCommand = 'node --experimental-vm-modules node_modules/.bin/jest';
+            const jestArgs = [
+                '--verbose',
+                '--forceExit',
+                '--detectOpenHandles',
+                '--testTimeout=30000'
+            ].join(' ');
+            
+            const fullCommand = `${jestCommand} ${jestArgs}`;
+            
+            console.log(`Executing: ${fullCommand}`);
+            
+            execSync(fullCommand, { 
+                cwd: join(__dirname, '..'),
+                stdio: 'inherit',
+                encoding: 'utf8'
+            });
+            
+            this.results.passedSuites = this.testSuites.length;
+            this.results.totalSuites = this.testSuites.length;
+            
+            console.log("\n✅ All Jest tests completed successfully");
+            
+        } catch (error) {
+            this.results.failedSuites = 1;
+            this.results.totalSuites = this.testSuites.length;
+            console.error("\n❌ Jest tests failed:", error.message);
+            throw error;
         }
 
         this.results.endTime = Date.now();
@@ -55,7 +77,7 @@ class Phase4TestRunner {
         const duration = this.results.endTime - this.results.startTime;
         
         console.log("\n" + "=".repeat(80));
-        console.log("🏆 PHASE 4 TESTING COMPLETE");
+        console.log("🏆 JEST TESTING COMPLETE");
         console.log("=".repeat(80));
         console.log(`📊 Test Suites: ${this.results.totalSuites}`);
         console.log(`✅ Passed: ${this.results.passedSuites}`);
@@ -64,26 +86,33 @@ class Phase4TestRunner {
         console.log(`📈 Success Rate: ${((this.results.passedSuites / this.results.totalSuites) * 100).toFixed(1)}%`);
 
         if (this.results.failedSuites === 0) {
-            console.log("\n🎉 ALL TEST SUITES PASSED!");
+            console.log("\n🎉 ALL JEST TESTS PASSED!");
             console.log("🚀 System is ready for production deployment");
-            console.log("📚 Phase 4 documentation and testing complete");
+            console.log("📚 Phase 4 testing complete with Jest");
         } else {
             console.log(`\n⚠️  ${this.results.failedSuites} test suite(s) failed`);
-            console.log("🔧 Please review and fix issues before deployment");
+            console.log("🔧 Please review Jest output and fix issues before deployment");
         }
 
         console.log("\n📋 Next Steps:");
-        console.log("   1. Review any failed tests");
-        console.log("   2. Generate comprehensive documentation");
-        console.log("   3. Prepare deployment package");
-        console.log("   4. Execute production deployment");
+        console.log("   1. Review any failed tests in Jest output");
+        console.log("   2. Fix any failing assertions");
+        console.log("   3. Re-run tests: npm test");
+        console.log("   4. Prepare deployment package");
+        console.log("   5. Execute production deployment");
+        
+        console.log("\n🔧 Jest Commands:");
+        console.log("   npm test                    - Run all tests");
+        console.log("   npm run test:watch          - Run tests in watch mode");
+        console.log("   npm run test:coverage       - Run tests with coverage");
+        console.log("   npm run test:performance    - Run only performance tests");
     }
 }
 
 // Run tests if this file is executed directly
-// if (import.meta.url === `file://${process.argv[1]}`) {
-    const runner = new Phase4TestRunner();
+if (import.meta.url === `file://${process.argv[1]}`) {
+    const runner = new JestTestRunner();
     runner.runAllTests().catch(console.error);
-// }
+}
 
-export default Phase4TestRunner;
+export default JestTestRunner;

@@ -2,308 +2,275 @@ import { pool } from '../utils/index.js';
 
 /**
  * Query Performance Testing Suite
- * Tests query optimization, indexing, and performance metrics
+ * Tests query optimization, indexing, and performance metrics using Jest
  */
-class QueryPerformanceTests {
-    constructor() {
-        this.testResults = { passed: 0, failed: 0, errors: [] };
-        this.performanceMetrics = {};
+describe('Query Performance Tests', () => {
+  beforeAll(async () => {
+    // Test database connection before running tests
+    const connection = await global.testUtils.testDatabaseConnection(pool);
+    if (!connection.success) {
+      throw new Error(`Database connection failed: ${connection.error}`);
     }
+  });
 
-    async runAllTests() {
-        console.log("⚡ Running Query Performance Tests...");
-        console.log("=".repeat(60));
+  afterAll(async () => {
+    await pool.end();
+  });
 
-        try {
-            await this.testBasicQueryPerformance();
-            await this.testJoinQueryPerformance();
-            await this.testAggregationPerformance();
-            await this.testIndexEffectiveness();
-            await this.testComplexQueryPerformance();
-            this.printTestSummary();
-        } catch (error) {
-            console.error("❌ Query performance tests failed:", error.message);
-            throw error;
-        }
-    }
+  describe('Basic Query Performance', () => {
+    const basicQueries = [
+      { name: 'Products Count', query: 'SELECT COUNT(*) FROM products' },
+      { name: 'Areas Count', query: 'SELECT COUNT(*) FROM areas' },
+      { name: 'Estates Count', query: 'SELECT COUNT(*) FROM estates' },
+      { name: 'Estate Units Count', query: 'SELECT COUNT(*) FROM estate_units' },
+      { name: 'Price Trends Count', query: 'SELECT COUNT(*) FROM price_trends' }
+    ];
 
-    async testBasicQueryPerformance() {
-        console.log("\n🔍 Testing Basic Query Performance...");
-        
-        const basicQueries = [
-            { name: 'Products Count', query: 'SELECT COUNT(*) FROM products' },
-            { name: 'Areas Count', query: 'SELECT COUNT(*) FROM areas' },
-            { name: 'Estates Count', query: 'SELECT COUNT(*) FROM estates' },
-            { name: 'Estate Units Count', query: 'SELECT COUNT(*) FROM estate_units' },
-            { name: 'Price Trends Count', query: 'SELECT COUNT(*) FROM price_trends' }
-        ];
+    test.each(basicQueries)('$name should execute in under 100ms', async ({ name, query }) => {
+      const startTime = Date.now();
+      await pool.query(query);
+      const duration = Date.now() - startTime;
 
-        for (const test of basicQueries) {
-            try {
-                const startTime = Date.now();
-                await pool.query(test.query);
-                const endTime = Date.now();
-                const duration = endTime - startTime;
+      // This will FAIL if performance criteria is not met
+      expect(duration).toBeLessThan(100);
+    });
+  });
 
-                if (duration < 100) {
-                    console.log(`✅ ${test.name}: ${duration}ms (Excellent)`);
-                    this.testResults.passed++;
-                } else if (duration < 500) {
-                    console.log(`✅ ${test.name}: ${duration}ms (Good)`);
-                    this.testResults.passed++;
-                } else {
-                    console.log(`⚠️  ${test.name}: ${duration}ms (Slow)`);
-                }
+  describe('Join Query Performance', () => {
+    const joinQueries = [
+      {
+        name: 'Estates with Areas',
+        query: `
+          SELECT e.name, a.name as area_name
+          FROM estates e
+          JOIN areas a ON e.area_id = a.id
+          LIMIT 100
+        `,
+        maxDuration: 200
+      },
+      {
+        name: 'Estates with Products',
+        query: `
+          SELECT e.name, p.name as product_name
+          FROM estates e
+          JOIN products p ON e.product_id = p.id
+          LIMIT 100
+        `,
+        maxDuration: 200
+      },
+      {
+        name: 'Estate Units with Estates',
+        query: `
+          SELECT eu.unit_type, e.name as estate_name
+          FROM estate_units eu
+          JOIN estates e ON eu.estate_id = e.id
+          LIMIT 100
+        `,
+        maxDuration: 200
+      }
+    ];
 
-                this.performanceMetrics[test.name] = duration;
-            } catch (error) {
-                this.testResults.failed++;
-                this.testResults.errors.push(`${test.name} failed: ${error.message}`);
-            }
-        }
-    }
+    test.each(joinQueries)('$name should execute in under $maxDuration ms', async ({ name, query, maxDuration }) => {
+      const startTime = Date.now();
+      await pool.query(query);
+      const duration = Date.now() - startTime;
 
-    async testJoinQueryPerformance() {
-        console.log("\n🔗 Testing Join Query Performance...");
-        
-        const joinQueries = [
-            {
-                name: 'Estates with Areas',
-                query: `
-                    SELECT e.name, a.name as area_name
-                    FROM estates e
-                    JOIN areas a ON e.area_id = a.id
-                    LIMIT 100
-                `
-            },
-            {
-                name: 'Estates with Products',
-                query: `
-                    SELECT e.name, p.name as product_name
-                    FROM estates e
-                    JOIN products p ON e.product_id = p.id
-                    LIMIT 100
-                `
-            },
-            {
-                name: 'Estate Units with Estates',
-                query: `
-                    SELECT eu.unit_type, e.name as estate_name
-                    FROM estate_units eu
-                    JOIN estates e ON eu.estate_id = e.id
-                    LIMIT 100
-                `
-            }
-        ];
+      // This will FAIL if performance criteria is not met
+      expect(duration).toBeLessThan(maxDuration);
+    });
+  });
 
-        for (const test of joinQueries) {
-            try {
-                const startTime = Date.now();
-                await pool.query(test.query);
-                const endTime = Date.now();
-                const duration = endTime - startTime;
+  describe('Aggregation Query Performance', () => {
+    const aggregationQueries = [
+      {
+        name: 'Estate Classification Distribution',
+        query: `
+          SELECT 
+            classification,
+            COUNT(*) as count,
+            AVG(unit_count) as avg_units
+          FROM estates
+          GROUP BY classification
+        `,
+        maxDuration: 500
+      },
+      {
+        name: 'Price Trends by Area',
+        query: `
+          SELECT 
+            a.name as area_name,
+            COUNT(pt.id) as trend_count,
+            AVG(pt.price) as avg_price
+          FROM price_trends pt
+          JOIN areas a ON pt.area_id = a.id
+          GROUP BY a.id, a.name
+        `,
+        maxDuration: 500
+      },
+      {
+        name: 'Unit Status Summary',
+        query: `
+          SELECT 
+            status,
+            COUNT(*) as count,
+            AVG(CASE WHEN rent_price IS NOT NULL THEN rent_price END) as avg_rent
+          FROM estate_units
+          GROUP BY status
+        `,
+        maxDuration: 500
+      }
+    ];
 
-                if (duration < 200) {
-                    console.log(`✅ ${test.name}: ${duration}ms (Excellent)`);
-                    this.testResults.passed++;
-                } else if (duration < 1000) {
-                    console.log(`✅ ${test.name}: ${duration}ms (Good)`);
-                    this.testResults.passed++;
-                } else {
-                    console.log(`⚠️  ${test.name}: ${duration}ms (Slow)`);
-                }
+    test.each(aggregationQueries)('$name should execute in under $maxDuration ms', async ({ name, query, maxDuration }) => {
+      const startTime = Date.now();
+      await pool.query(query);
+      const duration = Date.now() - startTime;
 
-                this.performanceMetrics[test.name] = duration;
-            } catch (error) {
-                this.testResults.failed++;
-                this.testResults.errors.push(`${test.name} failed: ${error.message}`);
-            }
-        }
-    }
+      // This will FAIL if performance criteria is not met
+      expect(duration).toBeLessThan(maxDuration);
+    });
+  });
 
-    async testAggregationPerformance() {
-        console.log("\n📊 Testing Aggregation Query Performance...");
-        
-        const aggregationQueries = [
-            {
-                name: 'Estate Classification Count',
-                query: `
-                    SELECT classification, COUNT(*) as count
-                    FROM estates
-                    GROUP BY classification
-                `
-            },
-            {
-                name: 'Area Estate Distribution',
-                query: `
-                    SELECT a.name, COUNT(e.id) as estate_count
-                    FROM areas a
-                    LEFT JOIN estates e ON a.id = e.area_id
-                    GROUP BY a.id, a.name
-                    ORDER BY estate_count DESC
-                `
-            },
-            {
-                name: 'Price Trends by Area',
-                query: `
-                    SELECT a.name, COUNT(pt.id) as trend_count
-                    FROM areas a
-                    LEFT JOIN price_trends pt ON a.id = pt.area_id
-                    GROUP BY a.id, a.name
-                    ORDER BY trend_count DESC
-                `
-            }
-        ];
+  describe('Complex Query Performance', () => {
+    const complexQueries = [
+      {
+        name: 'Market Analysis Query',
+        query: `
+          SELECT 
+            a.name as area_name,
+            e.classification,
+            COUNT(e.id) as estate_count,
+            AVG(e.unit_count) as avg_units,
+            COUNT(eu.id) as total_units,
+            COUNT(CASE WHEN eu.status = 'occupied' THEN 1 END) as occupied_units,
+            ROUND(
+              COUNT(CASE WHEN eu.status = 'occupied' THEN 1 END)::DECIMAL / 
+              COUNT(eu.id)::DECIMAL * 100, 2
+            ) as occupancy_rate
+          FROM areas a
+          LEFT JOIN estates e ON a.id = e.area_id
+          LEFT JOIN estate_units eu ON e.id = eu.estate_id
+          GROUP BY a.id, a.name, e.classification
+          ORDER BY a.name, e.classification
+        `,
+        maxDuration: 1000
+      },
+      {
+        name: 'Price Trend Analysis',
+        query: `
+          SELECT 
+            p.name as product_name,
+            a.name as area_name,
+            pt.unit_type,
+            pt.price_type,
+            AVG(pt.price) as avg_price,
+            MIN(pt.price) as min_price,
+            MAX(pt.price) as max_price,
+            COUNT(pt.id) as data_points
+          FROM price_trends pt
+          JOIN products p ON pt.product_id = p.id
+          JOIN areas a ON pt.area_id = a.id
+          WHERE pt.period >= CURRENT_DATE - INTERVAL '6 months'
+          GROUP BY p.id, p.name, a.id, a.name, pt.unit_type, pt.price_type
+          ORDER BY p.name, a.name, pt.unit_type
+        `,
+        maxDuration: 1000
+      }
+    ];
 
-        for (const test of aggregationQueries) {
-            try {
-                const startTime = Date.now();
-                await pool.query(test.query);
-                const endTime = Date.now();
-                const duration = endTime - startTime;
+    test.each(complexQueries)('$name should execute in under $maxDuration ms', async ({ name, query, maxDuration }) => {
+      const startTime = Date.now();
+      await pool.query(query);
+      const duration = Date.now() - startTime;
 
-                if (duration < 300) {
-                    console.log(`✅ ${test.name}: ${duration}ms (Excellent)`);
-                    this.testResults.passed++;
-                } else if (duration < 1500) {
-                    console.log(`✅ ${test.name}: ${duration}ms (Good)`);
-                    this.testResults.passed++;
-                } else {
-                    console.log(`⚠️  ${test.name}: ${duration}ms (Slow)`);
-                }
+      // This will FAIL if performance criteria is not met
+      expect(duration).toBeLessThan(maxDuration);
+    });
+  });
 
-                this.performanceMetrics[test.name] = duration;
-            } catch (error) {
-                this.testResults.failed++;
-                this.testResults.errors.push(`${test.name} failed: ${error.message}`);
-            }
-        }
-    }
+  describe('Index Effectiveness', () => {
+    test('should use indexes for estate classification queries', async () => {
+      const result = await pool.query(`
+        EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)
+        SELECT * FROM estates WHERE classification = 'luxury'
+      `);
 
-    async testIndexEffectiveness() {
-        console.log("\n📈 Testing Index Effectiveness...");
-        
-        try {
-            // Test query without index hint
-            const startTime1 = Date.now();
-            await pool.query(`
-                SELECT * FROM estates 
-                WHERE classification = 'luxury' 
-                AND estate_type = 'bungalow'
-            `);
-            const endTime1 = Date.now();
-            const duration1 = endTime1 - startTime1;
+      const plan = result.rows[0]['QUERY PLAN'][0];
+      
+      // Check if index scan is used
+      expect(plan['Node Type']).toMatch(/Index Scan|Bitmap Index Scan/);
+      
+      // Check execution time
+      expect(plan['Execution Time']).toBeLessThan(10); // Should be very fast with index
+    });
 
-            // Test query with index hint
-            const startTime2 = Date.now();
-            await pool.query(`
-                SELECT * FROM estates 
-                WHERE classification = 'luxury' 
-                AND estate_type = 'bungalow'
-            `);
-            const endTime2 = Date.now();
-            const duration2 = endTime2 - startTime2;
+    test('should use spatial indexes for geometry queries', async () => {
+      const result = await pool.query(`
+        EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)
+        SELECT * FROM areas 
+        WHERE ST_DWithin(
+          geometry, 
+          ST_SetSRID(ST_MakePoint(7.4916, 9.0765), 4326), 
+          0.1
+        )
+      `);
 
-            console.log(`✅ Index effectiveness test: First run ${duration1}ms, Second run ${duration2}ms`);
-            
-            if (duration2 < duration1) {
-                console.log("   Index caching working effectively");
-                this.testResults.passed++;
-            } else {
-                console.log("   Index performance could be improved");
-            }
+      const plan = result.rows[0]['QUERY PLAN'][0];
+      
+      // Check if spatial index is used
+      expect(plan['Node Type']).toMatch(/Index Scan|Bitmap Index Scan/);
+    });
+  });
 
-        } catch (error) {
-            this.testResults.failed++;
-            this.testResults.errors.push(`Index effectiveness test failed: ${error.message}`);
-        }
-    }
+  describe('Concurrent Query Performance', () => {
+    test('should handle multiple concurrent queries efficiently', async () => {
+      const queries = [
+        'SELECT COUNT(*) FROM estates',
+        'SELECT COUNT(*) FROM areas',
+        'SELECT COUNT(*) FROM products',
+        'SELECT COUNT(*) FROM estate_units',
+        'SELECT COUNT(*) FROM price_trends'
+      ];
 
-    async testComplexQueryPerformance() {
-        console.log("\n🧠 Testing Complex Query Performance...");
-        
-        const complexQueries = [
-            {
-                name: 'Market Intelligence Query',
-                query: `
-                    SELECT 
-                        a.name as area_name,
-                        e.classification,
-                        e.estate_type,
-                        COUNT(e.id) as estate_count,
-                        AVG(e.unit_count) as avg_units,
-                        COUNT(CASE WHEN e.gated = true THEN 1 END) as gated_count
-                    FROM areas a
-                    LEFT JOIN estates e ON a.id = e.area_id
-                    GROUP BY a.id, a.name, e.classification, e.estate_type
-                    ORDER BY estate_count DESC
-                `
-            },
-            {
-                name: 'Business Expansion Analysis',
-                query: `
-                    SELECT 
-                        e.classification,
-                        e.estate_type,
-                        COUNT(e.id) as total_estates,
-                        COUNT(CASE WHEN e.occupancy_status = 'fully_occupied' THEN 1 END) as occupied_count,
-                        ROUND(
-                            COUNT(CASE WHEN e.occupancy_status = 'fully_occupied' THEN 1 END)::decimal / 
-                            COUNT(e.id)::decimal * 100, 2
-                        ) as occupancy_rate
-                    FROM estates e
-                    GROUP BY e.classification, e.estate_type
-                    ORDER BY occupancy_rate DESC
-                `
-            }
-        ];
+      const startTime = Date.now();
+      
+      // Execute all queries concurrently
+      const promises = queries.map(query => pool.query(query));
+      await Promise.all(promises);
+      
+      const totalDuration = Date.now() - startTime;
+      
+      // Total time should be reasonable (concurrent execution)
+      expect(totalDuration).toBeLessThan(500);
+    });
+  });
 
-        for (const test of complexQueries) {
-            try {
-                const startTime = Date.now();
-                await pool.query(test.query);
-                const endTime = Date.now();
-                const duration = endTime - startTime;
-
-                if (duration < 500) {
-                    console.log(`✅ ${test.name}: ${duration}ms (Excellent)`);
-                    this.testResults.passed++;
-                } else if (duration < 2000) {
-                    console.log(`✅ ${test.name}: ${duration}ms (Good)`);
-                    this.testResults.passed++;
-                } else {
-                    console.log(`⚠️  ${test.name}: ${duration}ms (Slow - consider optimization)`);
-                }
-
-                this.performanceMetrics[test.name] = duration;
-            } catch (error) {
-                this.testResults.failed++;
-                this.testResults.errors.push(`${test.name} failed: ${error.message}`);
-            }
-        }
-    }
-
-    printTestSummary() {
-        console.log("\n" + "=".repeat(60));
-        console.log("📊 QUERY PERFORMANCE TEST SUMMARY");
-        console.log("=".repeat(60));
-        console.log(`✅ Tests Passed: ${this.testResults.passed}`);
-        console.log(`❌ Tests Failed: ${this.testResults.failed}`);
-        
-        if (Object.keys(this.performanceMetrics).length > 0) {
-            console.log("\n📈 Performance Metrics:");
-            Object.entries(this.performanceMetrics).forEach(([query, duration]) => {
-                console.log(`   ${query}: ${duration}ms`);
-            });
-        }
-        
-        if (this.testResults.errors.length > 0) {
-            console.log("\n❌ Errors Found:");
-            this.testResults.errors.forEach((error, index) => {
-                console.log(`   ${index + 1}. ${error}`);
-            });
-        }
-    }
-}
-
-export default QueryPerformanceTests;
+  describe('Data Volume Performance', () => {
+    test('should maintain performance with realistic data volumes', async () => {
+      // Test with larger result sets
+      const startTime = Date.now();
+      
+      const result = await pool.query(`
+        SELECT 
+          e.name as estate_name,
+          a.name as area_name,
+          e.classification,
+          e.unit_count,
+          COUNT(eu.id) as actual_units
+        FROM estates e
+        JOIN areas a ON e.area_id = a.id
+        LEFT JOIN estate_units eu ON e.id = eu.estate_id
+        GROUP BY e.id, e.name, a.name, e.classification, e.unit_count
+        ORDER BY e.name
+      `);
+      
+      const duration = Date.now() - startTime;
+      
+      // Should have data
+      expect(result.rows.length).toBeGreaterThan(0);
+      
+      // Should execute in reasonable time
+      expect(duration).toBeLessThan(1000);
+    });
+  });
+});

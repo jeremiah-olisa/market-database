@@ -2,398 +2,268 @@ import { pool } from '../utils/index.js';
 
 /**
  * Schema Validation Test Suite
- * Tests all database tables, constraints, and relationships
+ * Tests all database tables, constraints, and relationships using Jest
  */
-class SchemaValidationTests {
-    constructor() {
-        this.testResults = {
-            passed: 0,
-            failed: 0,
-            errors: []
-        };
+describe('Database Schema Validation', () => {
+  beforeAll(async () => {
+    // Test database connection before running tests
+    const connection = await global.testUtils.testDatabaseConnection(pool);
+    if (!connection.success) {
+      throw new Error(`Database connection failed: ${connection.error}`);
     }
+  });
 
-    /**
-     * Run all schema validation tests
-     */
-    async runAllTests() {
-        console.log("🔍 Running Schema Validation Tests...");
-        console.log("=".repeat(60));
+  afterAll(async () => {
+    await pool.end();
+  });
 
-        try {
-            await this.testDatabaseConnection();
-            await this.testCoreTables();
-            await this.testTableConstraints();
-            await this.testForeignKeyRelationships();
-            await this.testEnumTypes();
-            await this.testIndexes();
-            await this.testSpatialData();
-            await this.testTriggers();
+  describe('Core Tables Existence', () => {
+    const requiredTables = [
+      'products',
+      'areas', 
+      'estates',
+      'estate_units',
+      'price_trends'
+    ];
 
-            this.printTestSummary();
-        } catch (error) {
-            console.error("❌ Schema validation tests failed:", error.message);
-            throw error;
-        }
-    }
+    test.each(requiredTables)('should have table %s', async (tableName) => {
+      const result = await pool.query(`
+        SELECT table_name
+        FROM information_schema.tables 
+        WHERE table_name = $1
+      `, [tableName]);
+      
+      expect(result.rows.length).toBeGreaterThan(0);
+      expect(result.rows[0].table_name).toBe(tableName);
+    });
+  });
 
-    /**
-     * Test database connection
-     */
-    async testDatabaseConnection() {
-        console.log("\n📡 Testing Database Connection...");
-        try {
-            const result = await pool.query("SELECT version()");
-            console.log("✅ Database connection successful");
-            console.log(`   PostgreSQL Version: ${result.rows[0].version.split(' ')[1]}`);
-            this.testResults.passed++;
-        } catch (error) {
-            this.testResults.failed++;
-            this.testResults.errors.push(`Database connection failed: ${error.message}`);
-            console.log("❌ Database connection failed");
-        }
-    }
+  describe('Table Structure Validation', () => {
+    describe('products table', () => {
+      test('should have correct columns with proper constraints', async () => {
+        const result = await pool.query(`
+          SELECT 
+            column_name,
+            data_type,
+            is_nullable,
+            column_default
+          FROM information_schema.columns 
+          WHERE table_name = 'products'
+          ORDER BY ordinal_position
+        `);
 
-    /**
-     * Test core tables existence and structure
-     */
-    async testCoreTables() {
-        console.log("\n🏗️  Testing Core Tables...");
+        const columns = result.rows.map(row => row.column_name);
         
-        const expectedTables = [
-            'products',
-            'areas', 
-            'estates',
-            'estate_units',
-            'price_trends'
-        ];
+        expect(columns).toContain('id');
+        expect(columns).toContain('name');
+        expect(columns).toContain('slug');
+        expect(columns).toContain('description');
+        expect(columns).toContain('status');
+        expect(columns).toContain('created_at');
+        expect(columns).toContain('updated_at');
 
-        for (const tableName of expectedTables) {
-            try {
-                const result = await pool.query(`
-                    SELECT 
-                        table_name,
-                        column_name,
-                        data_type,
-                        is_nullable,
-                        column_default
-                    FROM information_schema.columns 
-                    WHERE table_name = $1
-                    ORDER BY ordinal_position
-                `, [tableName]);
+        // Check specific constraints
+        const nameColumn = result.rows.find(row => row.column_name === 'name');
+        expect(nameColumn.is_nullable).toBe('NO');
+        expect(nameColumn.data_type).toBe('character varying');
+      });
 
-                if (result.rows.length > 0) {
-                    console.log(`✅ Table '${tableName}' exists with ${result.rows.length} columns`);
-                    this.testResults.passed++;
-                } else {
-                    throw new Error(`Table '${tableName}' not found`);
-                }
-            } catch (error) {
-                this.testResults.failed++;
-                this.testResults.errors.push(`Table '${tableName}' test failed: ${error.message}`);
-                console.log(`❌ Table '${tableName}' test failed`);
-            }
-        }
-    }
+      test('should have proper constraints and indexes', async () => {
+        // Check primary key
+        const pkResult = await pool.query(`
+          SELECT constraint_name, constraint_type
+          FROM information_schema.table_constraints
+          WHERE table_name = 'products' AND constraint_type = 'PRIMARY KEY'
+        `);
+        expect(pkResult.rows.length).toBeGreaterThan(0);
 
-    /**
-     * Test table constraints
-     */
-    async testTableConstraints() {
-        console.log("\n🔒 Testing Table Constraints...");
+        // Check unique constraint on slug
+        const uniqueResult = await pool.query(`
+          SELECT constraint_name, constraint_type
+          FROM information_schema.table_constraints
+          WHERE table_name = 'products' AND constraint_type = 'UNIQUE'
+        `);
+        expect(uniqueResult.rows.length).toBeGreaterThan(0);
+      });
+    });
+
+    describe('areas table', () => {
+      test('should have PostGIS geometry support', async () => {
+        const result = await pool.query(`
+          SELECT column_name, data_type
+          FROM information_schema.columns 
+          WHERE table_name = 'areas' AND column_name = 'geometry'
+        `);
         
-        const constraintTests = [
-            {
-                table: 'products',
-                constraint: 'products_name_check',
-                description: 'Product name length check'
-            },
-            {
-                table: 'estates',
-                constraint: 'estates_name_check',
-                description: 'Estate name length check'
-            },
-            {
-                table: 'estate_units',
-                constraint: 'estate_units_unit_type_check',
-                description: 'Unit type length check'
-            }
-        ];
+        expect(result.rows.length).toBeGreaterThan(0);
+        expect(result.rows[0].data_type).toBe('USER-DEFINED');
+      });
 
-        for (const test of constraintTests) {
-            try {
-                const result = await pool.query(`
-                    SELECT constraint_name, constraint_type
-                    FROM information_schema.table_constraints
-                    WHERE table_name = $1 AND constraint_name = $2
-                `, [test.table, test.constraint]);
+      test('should have required columns', async () => {
+        const result = await pool.query(`
+          SELECT column_name
+          FROM information_schema.columns 
+          WHERE table_name = 'areas'
+        `);
 
-                if (result.rows.length > 0) {
-                    console.log(`✅ Constraint '${test.constraint}' exists on table '${test.table}'`);
-                    this.testResults.passed++;
-                } else {
-                    throw new Error(`Constraint '${test.constraint}' not found`);
-                }
-            } catch (error) {
-                this.testResults.failed++;
-                this.testResults.errors.push(`Constraint test failed: ${error.message}`);
-                console.log(`❌ Constraint test failed: ${test.description}`);
-            }
-        }
-    }
+        const columns = result.rows.map(row => row.column_name);
+        expect(columns).toContain('id');
+        expect(columns).toContain('name');
+        expect(columns).toContain('state');
+        expect(columns).toContain('geo_code');
+        expect(columns).toContain('geometry');
+      });
+    });
 
-    /**
-     * Test foreign key relationships
-     */
-    async testForeignKeyRelationships() {
-        console.log("\n🔗 Testing Foreign Key Relationships...");
+    describe('estates table', () => {
+      test('should have proper foreign key relationships', async () => {
+        const result = await pool.query(`
+          SELECT 
+            tc.constraint_name,
+            kcu.column_name,
+            ccu.table_name AS foreign_table_name,
+            ccu.column_name AS foreign_column_name
+          FROM information_schema.table_constraints AS tc
+          JOIN information_schema.key_column_usage AS kcu
+            ON tc.constraint_name = kcu.constraint_name
+          JOIN information_schema.constraint_column_usage AS ccu
+            ON ccu.constraint_name = tc.constraint_name
+          WHERE tc.constraint_type = 'FOREIGN KEY' 
+            AND tc.table_name = 'estates'
+        `);
+
+        expect(result.rows.length).toBeGreaterThanOrEqual(2);
         
-        const fkTests = [
-            {
-                table: 'estates',
-                column: 'product_id',
-                references: 'products(id)'
-            },
-            {
-                table: 'estates',
-                column: 'area_id',
-                references: 'areas(id)'
-            },
-            {
-                table: 'estate_units',
-                column: 'estate_id',
-                references: 'estates(id)'
-            },
-            {
-                table: 'price_trends',
-                column: 'product_id',
-                references: 'products(id)'
-            },
-            {
-                table: 'price_trends',
-                column: 'area_id',
-                references: 'areas(id)'
-            }
-        ];
+        const foreignKeys = result.rows.map(row => ({
+          column: row.column_name,
+          references: `${row.foreign_table_name}.${row.foreign_column_name}`
+        }));
 
-        for (const test of fkTests) {
-            try {
-                const result = await pool.query(`
-                    SELECT 
-                        tc.constraint_name,
-                        tc.table_name,
-                        kcu.column_name,
-                        ccu.table_name AS foreign_table_name,
-                        ccu.column_name AS foreign_column_name
-                    FROM information_schema.table_constraints AS tc
-                    JOIN information_schema.key_column_usage AS kcu
-                        ON tc.constraint_name = kcu.constraint_name
-                    JOIN information_schema.constraint_column_usage AS ccu
-                        ON ccu.constraint_name = tc.constraint_name
-                    WHERE tc.constraint_type = 'FOREIGN KEY'
-                        AND tc.table_name = $1
-                        AND kcu.column_name = $2
-                `, [test.table, test.column]);
+        expect(foreignKeys).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ column: 'product_id', references: 'products.id' }),
+            expect.objectContaining({ column: 'area_id', references: 'areas.id' })
+          ])
+        );
+      });
 
-                if (result.rows.length > 0) {
-                    const fk = result.rows[0];
-                    console.log(`✅ FK: ${test.table}.${test.column} → ${fk.foreign_table_name}.${fk.foreign_column_name}`);
-                    this.testResults.passed++;
-                } else {
-                    throw new Error(`Foreign key not found: ${test.table}.${test.column}`);
-                }
-            } catch (error) {
-                this.testResults.failed++;
-                this.testResults.errors.push(`FK test failed: ${error.message}`);
-                console.log(`❌ FK test failed: ${test.table}.${test.column}`);
-            }
-        }
-    }
+      test('should have proper enum constraints', async () => {
+        const result = await pool.query(`
+          SELECT column_name, data_type
+          FROM information_schema.columns 
+          WHERE table_name = 'estates' 
+            AND column_name IN ('estate_type', 'occupancy_status', 'classification')
+        `);
 
-    /**
-     * Test enum types
-     */
-    async testEnumTypes() {
-        console.log("\n📋 Testing Enum Types...");
+        expect(result.rows.length).toBe(3);
         
-        const enumTests = [
-            'product_status',
-            'estate_type',
-            'occupancy_status',
-            'estate_classification',
-            'unit_status',
-            'price_type'
-        ];
+        result.rows.forEach(row => {
+          expect(row.data_type).toBe('USER-DEFINED');
+        });
+      });
+    });
+  });
 
-        for (const enumName of enumTests) {
-            try {
-                const result = await pool.query(`
-                    SELECT t.typname, e.enumlabel
-                    FROM pg_type t
-                    JOIN pg_enum e ON t.oid = e.enumtypid
-                    WHERE t.typname = $1
-                    ORDER BY e.enumsortorder
-                `, [enumName]);
+  describe('Enum Types Validation', () => {
+    test('should have all required enum types', async () => {
+      const result = await pool.query(`
+        SELECT typname
+        FROM pg_type
+        WHERE typtype = 'e'
+      `);
 
-                if (result.rows.length > 0) {
-                    const values = result.rows.map(row => row.enumlabel).join(', ');
-                    console.log(`✅ Enum '${enumName}': [${values}]`);
-                    this.testResults.passed++;
-                } else {
-                    throw new Error(`Enum type '${enumName}' not found`);
-                }
-            } catch (error) {
-                this.testResults.failed++;
-                this.testResults.errors.push(`Enum test failed: ${error.message}`);
-                console.log(`❌ Enum test failed: ${enumName}`);
-            }
-        }
-    }
+      const enumTypes = result.rows.map(row => row.typname);
+      
+      expect(enumTypes).toContain('product_status');
+      expect(enumTypes).toContain('estate_type');
+      expect(enumTypes).toContain('occupancy_status');
+      expect(enumTypes).toContain('estate_classification');
+      expect(enumTypes).toContain('unit_status');
+      expect(enumTypes).toContain('price_type');
+    });
 
-    /**
-     * Test database indexes
-     */
-    async testIndexes() {
-        console.log("\n📊 Testing Database Indexes...");
+    test('should have correct enum values for estate_classification', async () => {
+      const result = await pool.query(`
+        SELECT enumlabel
+        FROM pg_enum
+        WHERE enumtypid = (SELECT oid FROM pg_type WHERE typname = 'estate_classification')
+        ORDER BY enumsortorder
+      `);
+
+      const values = result.rows.map(row => row.enumlabel);
+      expect(values).toEqual(['luxury', 'middle_income', 'low_income']);
+    });
+  });
+
+  describe('Indexes Validation', () => {
+    test('should have proper indexes on foreign keys', async () => {
+      const result = await pool.query(`
+        SELECT indexname, indexdef
+        FROM pg_indexes
+        WHERE tablename = 'estates'
+      `);
+
+      const indexNames = result.rows.map(row => row.indexname);
+      
+      // Should have indexes on foreign key columns
+      expect(indexNames.some(name => name.includes('product_id'))).toBe(true);
+      expect(indexNames.some(name => name.includes('area_id'))).toBe(true);
+    });
+
+    test('should have spatial indexes for PostGIS data', async () => {
+      const result = await pool.query(`
+        SELECT indexname, indexdef
+        FROM pg_indexes
+        WHERE tablename = 'areas' AND indexdef LIKE '%gist%'
+      `);
+
+      expect(result.rows.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Triggers Validation', () => {
+    test('should have updated_at triggers on all tables', async () => {
+      const tables = ['products', 'areas', 'estates', 'estate_units', 'price_trends'];
+      
+      for (const table of tables) {
+        const result = await pool.query(`
+          SELECT trigger_name, event_manipulation
+          FROM information_schema.triggers
+          WHERE event_object_table = $1
+            AND trigger_name LIKE '%updated_at%'
+        `, [table]);
+
+        expect(result.rows.length).toBeGreaterThan(0);
+        expect(result.rows[0].event_manipulation).toBe('UPDATE');
+      }
+    });
+  });
+
+  describe('Data Integrity', () => {
+    test('should have data in all core tables', async () => {
+      const tables = ['products', 'areas', 'estates', 'estate_units', 'price_trends'];
+      
+      for (const table of tables) {
+        const result = await pool.query(`SELECT COUNT(*) FROM ${table}`);
+        const count = parseInt(result.rows[0].count);
         
-        const indexTests = [
-            'products_pkey',
-            'areas_pkey',
-            'estates_pkey',
-            'estate_units_pkey',
-            'price_trends_pkey'
-        ];
+        expect(count).toBeGreaterThan(0);
+        expect(count).toBeGreaterThanOrEqual(1);
+      }
+    });
 
-        for (const indexName of indexTests) {
-            try {
-                const result = await pool.query(`
-                    SELECT indexname, tablename, indexdef
-                    FROM pg_indexes
-                    WHERE indexname = $1
-                `, [indexName]);
+    test('should maintain referential integrity', async () => {
+      // Test that all estates have valid product_id and area_id
+      const result = await pool.query(`
+        SELECT COUNT(*) as invalid_count
+        FROM estates e
+        LEFT JOIN products p ON e.product_id = p.id
+        LEFT JOIN areas a ON e.area_id = a.id
+        WHERE p.id IS NULL OR a.id IS NULL
+      `);
 
-                if (result.rows.length > 0) {
-                    const index = result.rows[0];
-                    console.log(`✅ Index '${indexName}' exists on table '${index.tablename}'`);
-                    this.testResults.passed++;
-                } else {
-                    throw new Error(`Index '${indexName}' not found`);
-                }
-            } catch (error) {
-                this.testResults.failed++;
-                this.testResults.errors.push(`Index test failed: ${error.message}`);
-                console.log(`❌ Index test failed: ${indexName}`);
-            }
-        }
-    }
-
-    /**
-     * Test spatial data support
-     */
-    async testSpatialData() {
-        console.log("\n🗺️  Testing Spatial Data Support...");
-        
-        try {
-            // Test PostGIS extension
-            const postgisResult = await pool.query(`
-                SELECT extname, extversion
-                FROM pg_extension
-                WHERE extname = 'postgis'
-            `);
-
-            if (postgisResult.rows.length > 0) {
-                console.log(`✅ PostGIS extension enabled (v${postgisResult.rows[0].extversion})`);
-                this.testResults.passed++;
-            } else {
-                throw new Error('PostGIS extension not found');
-            }
-
-            // Test spatial columns
-            const spatialResult = await pool.query(`
-                SELECT 
-                    table_name,
-                    column_name,
-                    data_type
-                FROM information_schema.columns
-                WHERE data_type LIKE '%geometry%'
-                ORDER BY table_name, column_name
-            `);
-
-            if (spatialResult.rows.length > 0) {
-                console.log(`✅ Found ${spatialResult.rows.length} spatial columns:`);
-                spatialResult.rows.forEach(row => {
-                    console.log(`   - ${row.table_name}.${row.column_name}: ${row.data_type}`);
-                });
-                this.testResults.passed++;
-            } else {
-                console.log("⚠️  No spatial columns found");
-            }
-
-        } catch (error) {
-            this.testResults.failed++;
-            this.testResults.errors.push(`Spatial data test failed: ${error.message}`);
-            console.log(`❌ Spatial data test failed: ${error.message}`);
-        }
-    }
-
-    /**
-     * Test database triggers
-     */
-    async testTriggers() {
-        console.log("\n⚡ Testing Database Triggers...");
-        
-        try {
-            const result = await pool.query(`
-                SELECT 
-                    trigger_name,
-                    event_object_table,
-                    action_statement
-                FROM information_schema.triggers
-                WHERE trigger_name LIKE '%updated_at%'
-                ORDER BY event_object_table
-            `);
-
-            if (result.rows.length > 0) {
-                console.log(`✅ Found ${result.rows.length} updated_at triggers:`);
-                result.rows.forEach(row => {
-                    console.log(`   - ${row.trigger_name} on ${row.event_object_table}`);
-                });
-                this.testResults.passed++;
-            } else {
-                throw new Error('No updated_at triggers found');
-            }
-
-        } catch (error) {
-            this.testResults.failed++;
-            this.testResults.errors.push(`Trigger test failed: ${error.message}`);
-            console.log(`❌ Trigger test failed: ${error.message}`);
-        }
-    }
-
-    /**
-     * Print test summary
-     */
-    printTestSummary() {
-        console.log("\n" + "=".repeat(60));
-        console.log("📊 SCHEMA VALIDATION TEST SUMMARY");
-        console.log("=".repeat(60));
-        console.log(`✅ Tests Passed: ${this.testResults.passed}`);
-        console.log(`❌ Tests Failed: ${this.testResults.failed}`);
-        console.log(`📈 Success Rate: ${((this.testResults.passed / (this.testResults.passed + this.testResults.failed)) * 100).toFixed(1)}%`);
-
-        if (this.testResults.errors.length > 0) {
-            console.log("\n❌ Errors Found:");
-            this.testResults.errors.forEach((error, index) => {
-                console.log(`   ${index + 1}. ${error}`);
-            });
-        }
-
-        if (this.testResults.failed === 0) {
-            console.log("\n🎉 All schema validation tests passed!");
-        } else {
-            console.log(`\n⚠️  ${this.testResults.failed} tests failed. Please review the errors above.`);
-        }
-    }
-}
-
-export default SchemaValidationTests;
+      const invalidCount = parseInt(result.rows[0].invalid_count);
+      expect(invalidCount).toBe(0);
+    });
+  });
+});
