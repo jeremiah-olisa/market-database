@@ -9,6 +9,17 @@ services:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+    command: >
+      postgres
+      -c max_locks_per_transaction=256
+      -c shared_buffers=256MB
+      -c work_mem=8MB
+      -c maintenance_work_mem=128MB
+      -c statement_timeout=600000
+      -c lock_timeout=120000
+      -c idle_in_transaction_session_timeout=600000
+      -c max_connections=200
+      -c effective_cache_size=1GB
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -32,8 +43,11 @@ services:
       DB_NAME: market_db
       DB_PORT: 5432
       NODE_ENV: production
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
     restart: "no"
-    command: sh -c "pnpm run migrate && pnpm run seed && pnpm start"
+    command: sh -c "pnpm run migrate && pnpm start"
 
 volumes:
   db_data:

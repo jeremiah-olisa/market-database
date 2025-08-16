@@ -7,6 +7,7 @@
   "scripts": {
     "migrate": "node migrations/migrate.js",
     "seed": "node seeders/seed.js",
+    "cleanup": "node seeders/cleanup.js",
     "start": "node index.js",
     "db:truncate": "node utils/db-management.js truncate",
     "db:drop": "node utils/db-management.js drop",
