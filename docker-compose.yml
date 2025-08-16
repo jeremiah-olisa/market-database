@@ -47,7 +47,7 @@ services:
       - .:/usr/src/app
       - /usr/src/app/node_modules
     restart: "no"
-    command: sh -c "pnpm migrate && pnpm seed"
+    command: sh -c "pnpm migrate && pnpm seed && pnpm test"
 
 volumes:
   db_data:
