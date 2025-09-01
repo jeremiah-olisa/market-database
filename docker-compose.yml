@@ -40,14 +40,62 @@ services:
       DB_HOST: db
       DB_USER: postgres
       DB_PASSWORD: postgres
-      DB_NAME: market_db
+      DB_NAME: market_db_2
       DB_PORT: 5432
       NODE_ENV: production
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
     restart: "no"
-    command: sh -c "pnpm migrate && pnpm seed && pnpm test"
+    # command: sh -c "pnpm migrate && pnpm seed && pnpm test"
+    command: sh -c "pnpm migrate"
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@market.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5050:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    restart: unless-stopped
+
+  dbdocs:
+    image: node:20-alpine
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/usr/src/app
+      - dbml_node_modules:/usr/src/app/node_modules
+      - npm_cache:/root/.npm
+    working_dir: /usr/src/app
+    environment:
+      DB_HOST: db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: market_db
+      DB_PORT: 5432
+    command: >
+      sh -c "
+      if [ ! -f /usr/local/bin/db2dbml ]; then
+        echo 'Installing @dbml/cli...' &&
+        npm install -g @dbml/cli
+      fi &&
+      echo 'Generating DBML schema...' &&
+      db2dbml postgres 'postgresql://postgres:postgres@db:5432/market_db?schemas=public' -o ./schema.dbml &&
+      echo '=== DBML SCHEMA ===' &&
+      cat ./schema.dbml
+      "
+    restart: "no"
 
 volumes:
   db_data:
+  pgadmin_data:
+  dbml_node_modules:
+  npm_cache:
