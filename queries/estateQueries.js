@@ -1,131 +1,71 @@
+// queries/estateQueries.js
 import { pool } from '../utils/index.js';
 
-/**
- * Estate Queries Module
- * Provides comprehensive estate analysis and insights
- */
-export const estateQueries = {
-    /**
-     * Get estate occupancy analysis by area and classification
-     */
-    async getEstateOccupancyAnalysis() {
-        const query = `
-            SELECT 
-                a.name as area_name,
-                a.state,
-                e.classification,
-                e.estate_type,
-                COUNT(e.id) as total_estates,
-                COUNT(CASE WHEN e.occupancy_status = 'fully_occupied' THEN 1 END) as fully_occupied,
-                COUNT(CASE WHEN e.occupancy_status = 'vacant' THEN 1 END) as vacant,
-                COUNT(CASE WHEN e.occupancy_status = 'under_construction' THEN 1 END) as under_construction,
-                ROUND(
-                    COUNT(CASE WHEN e.occupancy_status = 'fully_occupied' THEN 1 END)::decimal / 
-                    COUNT(e.id)::decimal * 100, 2
-                ) as occupancy_rate
-            FROM estates e
-            JOIN areas a ON e.area_id = a.id
-            GROUP BY a.name, a.state, e.classification, e.estate_type
-            ORDER BY a.name, e.classification, e.estate_type
-        `;
-        
-        const result = await pool.query(query);
-        return result.rows;
-    },
+export async function getEstatesCount() {
+    const result = await pool.query("SELECT COUNT(*) FROM estates");
+    return parseInt(result.rows[0].count);
+}
 
-    /**
-     * Get estate classification distribution
-     */
-    async getEstateClassificationDistribution() {
-        const query = `
-            SELECT 
-                classification,
-                estate_type,
-                COUNT(*) as count,
-                ROUND(COUNT(*)::decimal / SUM(COUNT(*)) OVER() * 100, 2) as percentage
-            FROM estates
-            GROUP BY classification, estate_type
-            ORDER BY classification, estate_type
-        `;
-        
-        const result = await pool.query(query);
-        return result.rows;
-    },
+export async function getAreasCount() {
+    const result = await pool.query("SELECT COUNT(*) FROM areas");
+    return parseInt(result.rows[0].count);
+}
 
-    /**
-     * Get vacancy rate analysis by area
-     */
-    async getVacancyRateAnalysis() {
-        const query = `
-            SELECT 
-                a.name as area_name,
-                a.state,
-                COUNT(e.id) as total_estates,
-                COUNT(CASE WHEN e.occupancy_status = 'vacant' THEN 1 END) as vacant_estates,
-                ROUND(
-                    COUNT(CASE WHEN e.occupancy_status = 'vacant' THEN 1 END)::decimal / 
-                    COUNT(e.id)::decimal * 100, 2
-                ) as vacancy_rate,
-                AVG(e.unit_count) as avg_unit_count
-            FROM estates e
-            JOIN areas a ON e.area_id = a.id
-            GROUP BY a.name, a.state
-            ORDER BY vacancy_rate DESC
-        `;
-        
-        const result = await pool.query(query);
-        return result.rows;
-    },
+export async function getTierDistribution() {
+    const result = await pool.query(`
+        SELECT tier, COUNT(*) as count
+        FROM estates 
+        GROUP BY tier 
+        ORDER BY 
+            CASE tier 
+                WHEN 'platinum' THEN 1 
+                WHEN 'gold' THEN 2 
+                WHEN 'silver' THEN 3 
+                WHEN 'bronze' THEN 4 
+            END
+    `);
+    return result.rows;
+}
 
-    /**
-     * Get estate performance metrics by classification
-     */
-    async getEstatePerformanceMetrics() {
-        const query = `
-            SELECT 
-                e.classification,
-                COUNT(e.id) as total_estates,
-                AVG(e.unit_count) as avg_unit_count,
-                COUNT(CASE WHEN e.gated = true THEN 1 END) as gated_estates,
-                COUNT(CASE WHEN e.has_security = true THEN 1 END) as secured_estates,
-                ROUND(
-                    COUNT(CASE WHEN e.occupancy_status = 'fully_occupied' THEN 1 END)::decimal / 
-                    COUNT(e.id)::decimal * 100, 2
-                ) as overall_occupancy_rate
-            FROM estates e
-            GROUP BY e.classification
-            ORDER BY 
-                CASE e.classification 
-                    WHEN 'luxury' THEN 1 
-                    WHEN 'middle_income' THEN 2 
-                    WHEN 'low_income' THEN 3 
-                END
-        `;
-        
-        const result = await pool.query(query);
-        return result.rows;
-    },
+export async function getTopEstatesByPropertyValue(limit = 5) {
+    const result = await pool.query(`
+        SELECT name, tier, unit_count, 
+               (economic_indicators->>'property_value')::numeric as property_value
+        FROM estates 
+        ORDER BY (economic_indicators->>'property_value')::numeric DESC 
+        LIMIT $1
+    `, [limit]);
+    return result.rows;
+}
 
-    /**
-     * Get estate type performance analysis
-     */
-    async getEstateTypePerformance() {
-        const query = `
-            SELECT 
-                e.estate_type,
-                COUNT(e.id) as total_estates,
-                AVG(e.unit_count) as avg_unit_count,
-                ROUND(
-                    COUNT(CASE WHEN e.occupancy_status = 'fully_occupied' THEN 1 END)::decimal / 
-                    COUNT(e.id)::decimal * 100, 2
-                ) as occupancy_rate,
-                COUNT(CASE WHEN e.classification IN ('luxury', 'middle_income') THEN 1 END) as premium_count
-            FROM estates e
-            GROUP BY e.estate_type
-            ORDER BY avg_unit_count DESC
-        `;
-        
-        const result = await pool.query(query);
-        return result.rows;
-    }
-};
+export async function getTierDemographics() {
+    const result = await pool.query(`
+        SELECT e.tier, 
+               AVG(d.total_population) as avg_population,
+               AVG(d.avg_household_income) as avg_income,
+               COUNT(e.id) as estate_count
+        FROM estates e
+        JOIN demographics d ON e.id = d.estate_id
+        GROUP BY e.tier
+        ORDER BY 
+            CASE e.tier 
+                WHEN 'platinum' THEN 1 
+                WHEN 'gold' THEN 2 
+                WHEN 'silver' THEN 3 
+                WHEN 'bronze' THEN 4 
+            END
+    `);
+    return result.rows;
+}
+
+export async function runEstateAnalysis() {
+    const [topEstates, tierDemographics] = await Promise.all([
+        getTopEstatesByPropertyValue(5),
+        getTierDemographics()
+    ]);
+
+    return {
+        topEstates,
+        tierDemographics
+    };
+}

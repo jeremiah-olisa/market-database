@@ -1,143 +1,59 @@
+// queries/financialQueries.js
 import { pool } from '../utils/index.js';
 
-/**
- * Financial Queries Module
- * Provides investment tracking and financial performance analysis
- * Note: Extended intelligence tables not yet implemented - using core schema data
- */
-export const financialQueries = {
-    /**
-     * Get estate investment analysis by classification
-     */
-    async getInvestmentPlansAnalysis() {
-        const query = `
-            SELECT 
-                e.classification,
-                e.estate_type,
-                e.name as estate_name,
-                e.unit_count,
-                e.gated,
-                e.has_security,
-                e.occupancy_status,
-                ROUND(
-                    COUNT(CASE WHEN eu.rent_price IS NOT NULL THEN 1 END)::decimal / 
-                    COUNT(eu.id)::decimal * 100, 2
-                ) as rental_availability_rate
-            FROM estates e
-            LEFT JOIN estate_units eu ON e.id = eu.estate_id
-            GROUP BY e.id, e.classification, e.estate_type, e.name, e.unit_count, e.gated, e.has_security, e.occupancy_status
-            ORDER BY e.unit_count DESC
-        `;
-        
-        const result = await pool.query(query);
-        return result.rows;
-    },
+export async function getRevenueByService() {
+    const result = await pool.query(`
+        SELECT service_category,
+               SUM(revenue) as total_revenue,
+               SUM(customer_count) as total_customers,
+               AVG(growth_rate) as avg_growth_rate
+        FROM cross_platform_revenue
+        WHERE period = (SELECT MAX(period) FROM cross_platform_revenue)
+        GROUP BY service_category
+        ORDER BY total_revenue DESC
+    `);
+    return result.rows;
+}
 
-    /**
-     * Get estate expenditure analysis by classification
-     */
-    async getCapitalExpenditureAnalysis() {
-        const query = `
-            SELECT 
-                e.classification,
-                e.estate_type,
-                COUNT(e.id) as total_estates,
-                AVG(e.unit_count) as avg_unit_count,
-                COUNT(CASE WHEN e.gated = true THEN 1 END) as gated_estates,
-                COUNT(CASE WHEN e.has_security = true THEN 1 END) as secured_estates,
-                COUNT(CASE WHEN e.occupancy_status = 'fully_occupied' THEN 1 END) as fully_occupied_estates,
-                ROUND(
-                    COUNT(CASE WHEN e.gated = true THEN 1 END)::decimal / 
-                    COUNT(e.id)::decimal * 100, 2
-                ) as gated_percentage
-            FROM estates e
-            GROUP BY e.classification, e.estate_type
-            ORDER BY avg_unit_count DESC
-        `;
-        
-        const result = await pool.query(query);
-        return result.rows;
-    },
+export async function getRevenueByTier() {
+    const result = await pool.query(`
+        SELECT e.tier,
+               SUM(cpr.revenue) as total_revenue,
+               AVG(cpr.growth_rate) as avg_growth_rate
+        FROM cross_platform_revenue cpr
+        JOIN estates e ON cpr.estate_id = e.id
+        WHERE cpr.period = (SELECT MAX(period) FROM cross_platform_revenue)
+        GROUP BY e.tier
+        ORDER BY total_revenue DESC
+    `);
+    return result.rows;
+}
 
-    /**
-     * Get estate ROI analysis by classification
-     */
-    async getROITrackingAnalysis() {
-        const query = `
-            SELECT 
-                e.classification,
-                e.estate_type,
-                COUNT(e.id) as total_estates,
-                AVG(e.unit_count) as avg_unit_count,
-                COUNT(CASE WHEN e.occupancy_status = 'fully_occupied' THEN 1 END) as fully_occupied_estates,
-                COUNT(CASE WHEN e.occupancy_status = 'vacant' THEN 1 END) as vacant_estates,
-                ROUND(
-                    COUNT(CASE WHEN e.occupancy_status = 'fully_occupied' THEN 1 END)::decimal / 
-                    COUNT(e.id)::decimal * 100, 2
-                ) as occupancy_rate,
-                ROUND(
-                    COUNT(CASE WHEN e.occupancy_status = 'vacant' THEN 1 END)::decimal / 
-                    COUNT(e.id)::decimal * 100, 2
-                ) as vacancy_rate
-            FROM estates e
-            GROUP BY e.classification, e.estate_type
-            ORDER BY occupancy_rate DESC
-        `;
-        
-        const result = await pool.query(query);
-        return result.rows;
-    },
+export async function getMarketOpportunities() {
+    const result = await pool.query(`
+        SELECT opportunity_type,
+               COUNT(*) as opportunity_count,
+               AVG(potential_revenue) as avg_potential_revenue,
+               AVG(probability) as avg_probability
+        FROM market_opportunities
+        WHERE probability > 0.5
+        GROUP BY opportunity_type
+        ORDER BY avg_potential_revenue DESC
+        LIMIT 10
+    `);
+    return result.rows;
+}
 
-    /**
-     * Get estate performance metrics by classification
-     */
-    async getInvestmentPerformanceMetrics() {
-        const query = `
-            SELECT 
-                e.classification,
-                e.estate_type,
-                COUNT(e.id) as total_estates,
-                AVG(e.unit_count) as avg_unit_count,
-                COUNT(CASE WHEN e.gated = true THEN 1 END) as gated_estates,
-                COUNT(CASE WHEN e.has_security = true THEN 1 END) as secured_estates,
-                COUNT(CASE WHEN e.occupancy_status = 'fully_occupied' THEN 1 END) as fully_occupied_estates,
-                ROUND(
-                    COUNT(CASE WHEN e.occupancy_status = 'fully_occupied' THEN 1 END)::decimal / 
-                    COUNT(e.id)::decimal * 100, 2
-                ) as performance_score
-            FROM estates e
-            GROUP BY e.classification, e.estate_type
-            ORDER BY performance_score DESC
-        `;
-        
-        const result = await pool.query(query);
-        return result.rows;
-    },
+export async function runFinancialAnalysis() {
+    const [revenueByService, revenueByTier, opportunities] = await Promise.all([
+        getRevenueByService(),
+        getRevenueByTier(),
+        getMarketOpportunities()
+    ]);
 
-    /**
-     * Get financial performance by area
-     */
-    async getFinancialPerformanceByArea() {
-        const query = `
-            SELECT 
-                a.name as area_name,
-                a.state,
-                COUNT(DISTINCT e.id) as total_estates,
-                AVG(e.unit_count) as avg_unit_count,
-                COUNT(CASE WHEN e.classification = 'luxury' THEN 1 END) as luxury_estates,
-                COUNT(CASE WHEN e.classification = 'middle_income' THEN 1 END) as middle_income_estates,
-                COUNT(CASE WHEN e.classification = 'low_income' THEN 1 END) as low_income_estates,
-                ROUND(
-                    COUNT(CASE WHEN e.classification IN ('luxury', 'middle_income') THEN 1 END)::decimal / 
-                    COUNT(DISTINCT e.id)::decimal * 100, 2
-                ) as premium_percentage
-            FROM areas a
-            LEFT JOIN estates e ON a.id = e.area_id
-            GROUP BY a.name, a.state
-            ORDER BY avg_unit_count DESC
-        `;
-        
-        const result = await pool.query(query);
-        return result.rows;
-    }
-};
+    return {
+        revenueByService,
+        revenueByTier,
+        opportunities
+    };
+}

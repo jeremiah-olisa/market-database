@@ -5,3 +5,10 @@ Table "spatial_ref_sys" {
   "srtext" varchar(2048)
   "proj4text" varchar(2048)
 }
+
+Table "__migrations" {
+  "id" int4 [pk, not null, increment]
+  "name" varchar(255) [unique, not null]
+  "applied_at" timestamptz [default: `CURRENT_TIMESTAMP`]
+  "checksum" varchar(64) [not null]
+}

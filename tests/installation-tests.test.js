@@ -20,20 +20,20 @@ describe('System Installation Tests', () => {
   describe('Database Connection', () => {
     test('should connect to PostgreSQL database', async () => {
       const result = await pool.query('SELECT version()');
-      
+
       expect(result.rows.length).toBeGreaterThan(0);
       expect(result.rows[0].version).toContain('PostgreSQL');
     });
 
     test('should have correct database name', async () => {
       const result = await pool.query('SELECT current_database()');
-      
-      expect(result.rows[0].current_database).toBe('market_db');
+
+      expect(result.rows[0].current_database).toBe(process?.env?.DB_NAME ?? 'market_db_2');
     });
 
     test('should have correct user permissions', async () => {
       const result = await pool.query('SELECT current_user');
-      
+
       expect(result.rows[0].current_user).toBe('postgres');
     });
   });
@@ -45,7 +45,7 @@ describe('System Installation Tests', () => {
         FROM pg_extension
         WHERE extname = 'postgis'
       `);
-      
+
       expect(result.rows.length).toBeGreaterThan(0);
       expect(result.rows[0].extname).toBe('postgis');
       expect(result.rows[0].extversion).toBeDefined();
@@ -57,7 +57,7 @@ describe('System Installation Tests', () => {
         FROM pg_proc
         WHERE proname IN ('st_distance', 'st_within', 'st_intersects')
       `);
-      
+
       expect(result.rows.length).toBeGreaterThanOrEqual(3);
     });
   });
@@ -69,9 +69,9 @@ describe('System Installation Tests', () => {
         FROM pg_settings
         WHERE name IN ('max_connections', 'shared_buffers', 'work_mem')
       `);
-      
+
       expect(result.rows.length).toBeGreaterThanOrEqual(3);
-      
+
       // Check specific settings
       const maxConnections = result.rows.find(row => row.name === 'max_connections');
       expect(parseInt(maxConnections.setting)).toBeGreaterThanOrEqual(100);
@@ -83,7 +83,7 @@ describe('System Installation Tests', () => {
         FROM pg_settings
         WHERE name IN ('statement_timeout', 'lock_timeout')
       `);
-      
+
       expect(result.rows.length).toBeGreaterThanOrEqual(2);
     });
   });
@@ -95,13 +95,13 @@ describe('System Installation Tests', () => {
         FROM information_schema.schemata
         WHERE schema_name IN ('public', 'information_schema', 'pg_catalog')
       `);
-      
+
       expect(result.rows.length).toBeGreaterThanOrEqual(3);
     });
 
     test('should have public schema as default', async () => {
       const result = await pool.query('SELECT current_schema()');
-      
+
       expect(result.rows[0].current_schema).toBe('public');
     });
   });
@@ -113,7 +113,7 @@ describe('System Installation Tests', () => {
         FROM information_schema.tables
         WHERE table_name = '__migrations'
       `);
-      
+
       expect(result.rows.length).toBeGreaterThan(0);
     });
 
@@ -132,7 +132,7 @@ describe('System Installation Tests', () => {
           FROM information_schema.tables
           WHERE table_name = $1
         `, [tableName]);
-        
+
         expect(result.rows.length).toBeGreaterThan(0);
       }
     });
@@ -152,7 +152,7 @@ describe('System Installation Tests', () => {
           FROM information_schema.tables
           WHERE table_name = $1
         `, [tableName]);
-        
+
         expect(result.rows.length).toBeGreaterThan(0);
       }
     });
@@ -162,13 +162,13 @@ describe('System Installation Tests', () => {
     test('should have seeded products data', async () => {
       const result = await pool.query('SELECT COUNT(*) FROM products');
       const count = parseInt(result.rows[0].count);
-      
+
       expect(count).toBeGreaterThanOrEqual(4);
-      
+
       // Check specific products
       const products = await pool.query('SELECT name FROM products');
       const productNames = products.rows.map(row => row.name);
-      
+
       expect(productNames).toContain('MDU Data Collection Service');
       expect(productNames).toContain('Residential Internet Service');
       expect(productNames).toContain('Business Internet Solutions');
@@ -178,9 +178,9 @@ describe('System Installation Tests', () => {
     test('should have seeded areas data', async () => {
       const result = await pool.query('SELECT COUNT(*) FROM areas');
       const count = parseInt(result.rows[0].count);
-      
+
       expect(count).toBeGreaterThanOrEqual(12);
-      
+
       // Check for Nigerian areas
       const areas = await pool.query('SELECT name, state FROM areas LIMIT 5');
       expect(areas.rows.length).toBeGreaterThan(0);
@@ -190,15 +190,15 @@ describe('System Installation Tests', () => {
     test('should have seeded estates data', async () => {
       const result = await pool.query('SELECT COUNT(*) FROM estates');
       const count = parseInt(result.rows[0].count);
-      
+
       expect(count).toBeGreaterThanOrEqual(30);
-      
+
       // Check estate classifications
       const classifications = await pool.query(`
         SELECT DISTINCT classification
         FROM estates
       `);
-      
+
       const classTypes = classifications.rows.map(row => row.classification);
       expect(classTypes).toContain('luxury');
       expect(classTypes).toContain('middle_income');
@@ -216,9 +216,9 @@ describe('System Installation Tests', () => {
         JOIN areas a ON e.area_id = a.id
         LIMIT 10
       `);
-      
+
       expect(result.rows.length).toBeGreaterThan(0);
-      
+
       // Check data quality
       result.rows.forEach(row => {
         expect(row.name).toBeDefined();
@@ -232,14 +232,14 @@ describe('System Installation Tests', () => {
   describe('Index Installation', () => {
     test('should have primary key indexes', async () => {
       const tables = ['products', 'areas', 'estates', 'estate_units', 'price_trends'];
-      
+
       for (const table of tables) {
         const result = await pool.query(`
           SELECT indexname
           FROM pg_indexes
           WHERE tablename = $1 AND indexname LIKE '%_pkey'
         `, [table]);
-        
+
         expect(result.rows.length).toBeGreaterThan(0);
       }
     });
@@ -257,7 +257,7 @@ describe('System Installation Tests', () => {
           FROM pg_indexes
           WHERE tablename = $1 AND indexdef LIKE '%' || $2 || '%'
         `, [table, column]);
-        
+
         expect(result.rows.length).toBeGreaterThan(0);
       }
     });
@@ -268,7 +268,7 @@ describe('System Installation Tests', () => {
         FROM pg_indexes
         WHERE tablename = 'areas' AND indexdef LIKE '%gist%'
       `);
-      
+
       expect(result.rows.length).toBeGreaterThan(0);
     });
   });
@@ -293,7 +293,7 @@ describe('System Installation Tests', () => {
             AND kcu.column_name = $2
             AND tc.constraint_type = 'FOREIGN KEY'
         `, [table, column]);
-        
+
         expect(result.rows.length).toBeGreaterThan(0);
       }
     });
@@ -307,7 +307,7 @@ describe('System Installation Tests', () => {
         WHERE constraint_schema = 'public' AND constraint_catalog = 'market_db'
         LIMIT 1
       `);
-      
+
       expect(result.rows.length).toBeGreaterThan(0);
     });
   });
@@ -315,7 +315,7 @@ describe('System Installation Tests', () => {
   describe('Trigger Installation', () => {
     test('should have updated_at triggers', async () => {
       const tables = ['products', 'areas', 'estates', 'estate_units', 'price_trends'];
-      
+
       for (const table of tables) {
         const result = await pool.query(`
           SELECT trigger_name
@@ -323,7 +323,7 @@ describe('System Installation Tests', () => {
           WHERE event_object_table = $1
             AND trigger_name LIKE '%updated_at%'
         `, [table]);
-        
+
         expect(result.rows.length).toBeGreaterThan(0);
       }
     });
@@ -338,7 +338,7 @@ describe('System Installation Tests', () => {
         LEFT JOIN areas a ON e.area_id = a.id
         WHERE p.id IS NULL OR a.id IS NULL
       `);
-      
+
       const orphanedCount = parseInt(result.rows[0].orphaned_count);
       expect(orphanedCount).toBe(0);
     });
@@ -353,13 +353,13 @@ describe('System Installation Tests', () => {
         WHERE column_name IN ('unit_count', 'rent_price', 'sale_price')
           AND data_type NOT IN ('integer', 'decimal', 'numeric')
       `);
-      
+
       expect(result.rows.length).toBe(0);
     });
 
     test('should have proper timestamps', async () => {
       const tables = ['products', 'areas', 'estates', 'estate_units', 'price_trends'];
-      
+
       for (const table of tables) {
         const result = await pool.query(`
           SELECT 
@@ -369,9 +369,9 @@ describe('System Installation Tests', () => {
           WHERE table_name = $1 
             AND column_name IN ('created_at', 'updated_at')
         `, [table]);
-        
+
         expect(result.rows.length).toBe(2);
-        
+
         result.rows.forEach(row => {
           expect(row.data_type).toContain('timestamp');
         });
