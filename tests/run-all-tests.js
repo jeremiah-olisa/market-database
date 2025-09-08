@@ -12,9 +12,9 @@ const __dirname = dirname(__filename);
 class JestTestRunner {
     constructor() {
         this.testSuites = [
-            'schema-validation.test.js',
-            'migration-tests.test.js',
+            'basic-setup.test.js',
             'installation-tests.test.js',
+            'migration-tests.test.js',
             'query-performance.test.js'
         ];
         this.results = {

@@ -1,4 +1,4 @@
-import { pool } from '../utils';
+import { pool } from '../utils/index.js';
 import seeder from './database-seeder.js';
 
 // Handle process termination

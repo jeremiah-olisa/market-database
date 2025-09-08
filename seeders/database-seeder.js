@@ -1,4 +1,4 @@
-import { pool } from "../utils";
+import { pool } from "../utils/index.js";
 import { NIGERIAN_DATA } from "./utils/dataGenerators.js";
 
 export class DatabaseSeeder {
