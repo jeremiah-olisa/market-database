@@ -42,11 +42,6 @@ npm install
 
 # Using yarn
 yarn install
-```
-
-### 3. Environment Configuration
-```bash
-# Copy environment template
 cp .env.example .env
 
 # Edit environment variables
@@ -63,30 +58,34 @@ DB_NAME=market_database
 DB_USER=your_username
 DB_PASSWORD=your_password
 
-# Application Configuration
-NODE_ENV=development
-PORT=3000
+# Getting Started
 
-# Optional Configuration
-LOG_LEVEL=info
-ENABLE_LOGGING=true
-```
+## Prerequisites
 
-### 4. Database Setup
+- Node.js (v20+ recommended)
+- PostgreSQL (with PostGIS extension enabled)
+- pnpm (package manager)
 
-#### Option A: Docker (Recommended)
-```bash
-# Start PostgreSQL with PostGIS
-docker-compose up -d
+## Setup
 
-# Verify containers are running
-docker-compose ps
+1. Clone the repository
+2. Install dependencies: `pnpm install`
+3. Ensure PostgreSQL is running and PostGIS is enabled
+4. Configure database connection in `.env` (see example)
+5. Run migrations: `pnpm migrate` (creates all tables, enums, indexes)
+6. Seed data: `pnpm seed` (populates all tables with realistic data)
+7. Run tests: `pnpm test` (validates schema, data, and queries)
 
-# Check logs
-docker-compose logs postgres
-```
+## Usage
 
-#### Option B: Local PostgreSQL
+- Start the application: `pnpm start`
+- Orchestrate queries: `pnpm run analysis` (if available)
+
+## Notes
+
+- Ensure PostGIS is enabled in your PostgreSQL instance
+- All commands are idempotent and safe for re-run
+- Schema and data are ready for advanced analytics and future extensions
 ```bash
 # Create database
 createdb market_database

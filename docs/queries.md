@@ -247,29 +247,38 @@ All queries are optimized to use appropriate indexes:
 ```javascript
 try {
   const result = await estateQueries.getEstateOccupancyAnalysis();
-  return result;
-} catch (error) {
-  console.error('Query execution failed:', error.message);
-  throw new Error(`Estate query failed: ${error.message}`);
-}
-```
 
-### Connection Issues
-```javascript
-// Pool connection is managed automatically
-// Queries will retry on connection failure
-```
+  # Query Modules
 
-## Future Enhancements
+  ## Core Query Modules
 
-### Phase 5: Extended Intelligence
-- Service provider integration
-- Customer profile analytics
-- Infrastructure mapping
-- Financial intelligence
+  - `estateQueries.js`: Estate analysis and insights
+  - `areaQueries.js`: Area and geographic analysis
+  - `businessQueries.js`: Business ecosystem analytics
+  - `customerQueries.js`: Customer profiles and usage
+  - `competitiveQueries.js`: Competitive benchmarking and market share
+  - `financialQueries.js`: Financial and investment analytics
+  - `infrastructureQueries.js`: Infrastructure coverage and quality
 
-### Phase 6: Advanced Analytics
-- Machine learning predictions
-- Real-time data streaming
-- Advanced reporting
-- Performance optimization
+  ## Query Orchestration
+
+  - Use `queries/index.js` for orchestrating comprehensive analysis:
+    - `runComprehensiveAnalysis()` (replaces `runAllQueries`)
+    - `getModule(name)` for specific query modules
+
+  ## Usage Example
+
+  ```js
+  import queryOrchestrator from './queries/index.js';
+  await queryOrchestrator.runComprehensiveAnalysis();
+  ```
+
+  ## Query Status
+
+  - Core modules: Working and covered by tests
+  - Extended modules: Implemented for new tables (see schema)
+
+  ## Notes
+
+  - Query modules match the latest schema and business logic
+  - Aggregated and advanced analytics available for estates, areas, business, customer, competitive, financial, and infrastructure domains

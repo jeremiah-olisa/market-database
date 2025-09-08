@@ -177,9 +177,6 @@ node tests/run-all-tests.js
 🔒 Testing Table Constraints...
 ✅ Constraint 'products_name_check' exists on table 'products'
 ✅ Constraint 'estates_name_check' exists on table 'estates'
-✅ Constraint 'estate_units_unit_type_check' exists on table 'estate_units'
-
-🔗 Testing Foreign Key Relationships...
 ✅ FK: estates.product_id → products.id
 ✅ FK: estates.area_id → areas.id
 ✅ FK: estate_units.estate_id → estates.id
@@ -189,14 +186,6 @@ node tests/run-all-tests.js
 📋 Testing Enum Types...
 ✅ Enum 'product_status': [active, inactive, archived]
 ✅ Enum 'estate_type': [apartment, bungalow, duplex, mansion, penthouse]
-✅ Enum 'estate_classification': [luxury, middle_income, low_income]
-✅ Enum 'occupancy_status': [fully_occupied, partially_occupied, under_construction, vacant]
-✅ Enum 'unit_status': [available, occupied, under_construction, maintenance]
-✅ Enum 'price_type': [rent, sale, maintenance]
-
-📊 Testing Database Indexes...
-✅ Index 'products_pkey' exists on table 'products'
-✅ Index 'areas_pkey' exists on table 'areas'
 ✅ Index 'estates_pkey' exists on table 'estates'
 ✅ Index 'estate_units_pkey' exists on table 'estate_units'
 ✅ Index 'price_trends_pkey' exists on table 'price_trends'
@@ -236,11 +225,6 @@ node tests/run-all-tests.js
 ```javascript
 // Performance tracking
 this.performanceMetrics = {
-    'Products Count': 15,
-    'Areas Count': 23,
-    'Estates Count': 45,
-    'Estate Units Count': 67,
-    'Price Trends Count': 89
 };
 ```
 
@@ -271,11 +255,6 @@ TEST_TIMEOUT=30000
 
 ### Test Failures
 ```javascript
-// Test failure handling
-if (this.testResults.failed > 0) {
-    console.log(`\n❌ Errors Found:`);
-    this.testResults.errors.forEach((error, index) => {
-        console.log(`   ${index + 1}. ${error}`);
     });
 }
 ```
@@ -299,32 +278,36 @@ try {
 // Add new test method
 async testNewFeature() {
     console.log("\n🧪 Testing New Feature...");
-    try {
-        // Test logic here
-        console.log("✅ New feature test passed");
-        this.testResults.passed++;
-    } catch (error) {
-        this.testResults.failed++;
-        this.testResults.errors.push(`New feature test failed: ${error.message}`);
-        console.log(`❌ New feature test failed`);
-    }
-}
 
-// Add to runAllTests method
-async runAllTests() {
-    // ... existing tests
-    await this.testNewFeature();
-    // ... rest of tests
-}
-```
+# Testing
 
-### Updating Test Data
-- Update expected values when schema changes
-- Modify test queries for new table structures
-- Adjust performance benchmarks as needed
+## Test Files
 
-## Continuous Integration
+- `basic-setup.test.js`: Basic setup and environment
+- `installation-tests.test.js`: Installation, schema, and data checks
+- `migration-tests.test.js`: Migration and schema validation
+- `query-performance.test.js`: Query performance and analytics
+- `run-all-tests.js`: Orchestrates all tests
+- `setup.js`: Test environment setup
 
+## Coverage
+
+- Database connection and health
+- All core and extended tables (areas, estates, demographics, service_providers, service_offerings, provider_coverage, competitive_benchmarking, market_share_data, local_businesses, customer_profiles, usage_patterns, customer_feedback)
+- Seeded data for all tables
+- Query modules and orchestration
+- Indexes (primary, foreign key, GIST, GIN)
+- Enum constraints and relationships
+
+## Usage
+
+Run `pnpm test` to execute all tests
+
+## Notes
+
+- Tests are idempotent and safe for re-run
+- Coverage for all core and extended modules
+- Validates schema, data, relationships, and analytics
 ### GitHub Actions
 ```yaml
 name: Tests

@@ -187,24 +187,27 @@ class MigrationRunner {
         // Migration logic
     }
     
-    async checkStatus() {
-        // Status checking logic
-    }
-}
-```
 
-## Usage
+        # Migrations
 
-### Run Migrations
-```bash
-# Run all pending migrations
-node migrations/migrate.js
+        ## Migration Files
 
-# Check migration status
-node migrations/migrate.js --status
+        - `20240317000000_db_init.sql`: Installs PostGIS extension for spatial data
+        - `20240318000000_create_db_tables.sql`: Creates all core and extended tables, enums, indexes
 
-# Run specific migration
-node migrations/migrate.js --file 20240318000002_create_base_tables.sql
+        ## Migration Steps
+
+        1. Create PostGIS extension (spatial support)
+        2. Create enums for tier, status, quality, category, etc.
+        3. Create all tables (areas, estates, demographics, service_providers, service_offerings, provider_coverage, competitive_benchmarking, market_share_data, local_businesses, customer_profiles, usage_patterns, customer_feedback)
+        4. Add primary key, foreign key, GIST (geometry), and GIN (JSONB) indexes
+        5. Seed initial data
+
+        ## Notes
+
+        - Use `pnpm migrate` to run migrations
+        - All migrations are idempotent and safe for re-run
+        - Schema supports future extensibility (financial, infrastructure, advanced analytics)
 ```
 
 ### Migration Status

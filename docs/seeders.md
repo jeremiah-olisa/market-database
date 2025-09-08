@@ -1,3 +1,30 @@
+# Seeders
+
+## Seeder Files
+- `database-seeder.js`: Main seeder for all tables
+- `seed.js`: Entry point for seeding process
+
+## Seeded Data
+- Areas (with Nigerian states)
+- Estates (with tiers, classifications, and area linkage)
+- Demographics (population, household, distributions)
+- Service Providers (at least 5 major providers)
+- Service Offerings (linked to providers)
+- Provider Coverage (linked to estates and providers)
+- Competitive Benchmarking (service comparisons)
+- Market Share Data (provider-estate-period)
+- Local Businesses (various types, linked to estates)
+- Customer Profiles (residential, business, linked to estates)
+- Usage Patterns (linked to customer profiles)
+- Customer Feedback (linked to customer profiles)
+
+## Usage
+Run `pnpm seed` to seed the database
+
+## Notes
+- Seeders are idempotent and safe for re-run
+- Data covers all core and extended tables
+- Ensures realistic and diverse data for testing and analytics
 # Data Seeders Documentation
 
 ## Overview

@@ -112,45 +112,64 @@ Historical pricing data for market analysis.
 - `inactive` - Product is temporarily unavailable
 - `archived` - Product is discontinued
 
-### estate_type
-- `apartment` - Multi-unit residential building
-- `bungalow` - Single-story house
-- `duplex` - Two-story house
-- `mansion` - Large luxury house
-- `penthouse` - Top-floor luxury unit
 
-### estate_classification
-- `luxury` - High-end premium properties
-- `middle_income` - Mid-range properties
-- `low_income` - Affordable properties
+# Database Schema
 
-### occupancy_status
-- `fully_occupied` - All units occupied
-- `partially_occupied` - Some units available
-- `under_construction` - Still being built
-- `vacant` - No units occupied
+## Core Tables
 
-### unit_status
-- `available` - Unit is available
-- `occupied` - Unit is rented/sold
-- `under_construction` - Unit being built
-- `maintenance` - Unit under maintenance
+- `areas`: Geographic regions, includes geometry (MultiPolygon)
+- `estates`: Linked to areas, includes tier (enum: platinum, gold, silver, bronze), geometry (Point), economic indicators (JSONB)
+- `demographics`: Linked to estates, population, household, distributions (JSONB)
+- `service_providers`: Market providers, status (enum), metadata (JSONB)
+- `service_offerings`: Linked to providers, service_category (enum), features (JSONB)
+- `provider_coverage`: Provider-estate coverage, service_quality (enum), coverage type
+- `competitive_benchmarking`: Service comparisons, market positioning
+- `market_share_data`: Provider-estate market share, revenue, confidence score
+- `local_businesses`: Linked to estates, business_type, status (enum), location (geometry Point), metrics (JSONB)
+- `customer_profiles`: Linked to estates, customer_type, status (enum), preferences (JSONB)
+- `usage_patterns`: Linked to customer_profiles, service_type, usage metrics (JSONB)
+- `customer_feedback`: Linked to customer_profiles, service_type, satisfaction_level (enum)
 
-### price_type
-- `rent` - Rental price
-- `sale` - Sale price
-- `maintenance` - Maintenance cost
+## Relationships
 
-## Foreign Key Relationships
+- Estates → Areas (area_id)
+- Demographics → Estates (estate_id)
+- Local Businesses → Estates (estate_id)
+- Customer Profiles → Estates (estate_id)
+- Service Offerings → Service Providers (provider_id)
+- Provider Coverage → Service Providers & Estates
+- Usage Patterns → Customer Profiles (customer_id)
+- Customer Feedback → Customer Profiles (customer_id)
 
-```
-products (1) ←→ (N) estates
-areas (1) ←→ (N) estates
-estates (1) ←→ (N) estate_units
-products (1) ←→ (N) price_trends
-areas (1) ←→ (N) price_trends
-```
+## Indexes
 
+- Primary key indexes on all tables
+- Foreign key indexes for all relationships
+- GIST indexes for geometry columns (areas, estates, local_businesses)
+- GIN indexes for JSONB columns (metadata, metrics, preferences)
+
+## Enums
+
+- estate_tier: platinum, gold, silver, bronze
+- provider_status: active, inactive
+- service_quality: excellent, good, fair, poor
+- business_status: active, inactive, closed
+- customer_status: active, inactive, suspended
+- satisfaction_level: very_satisfied, satisfied, neutral, dissatisfied, very_dissatisfied
+- service_category: internet, fintech, delivery, mailing
+- infrastructure_type: fiber, tower, router
+- infrastructure_status: operational, maintenance, down
+
+## Migration History
+
+- 20240317000000_db_init.sql: PostGIS extension
+- 20240318000000_create_db_tables.sql: All core and extended tables, enums, indexes
+
+## Notes
+
+- All tables use `created_at` and `updated_at` timestamps
+- Extensive use of JSONB for flexible analytics
+- Ready for future extensions (financial, infrastructure, advanced analytics)
 ## Spatial Data Support
 
 The system uses PostGIS for geographic operations:
